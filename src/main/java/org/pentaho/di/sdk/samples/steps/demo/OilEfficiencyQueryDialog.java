@@ -23,6 +23,7 @@
 package org.pentaho.di.sdk.samples.steps.demo;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -34,18 +35,35 @@ import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.*;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.KettleEnvironment;
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
+import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleFileException;
+import org.pentaho.di.core.exception.KettleValueException;
+import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
+import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.trans.steps.insertupdate.InsertUpdateMeta;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
+import org.pentaho.di.ui.core.dialog.SelectRowDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.ui.database.DatabaseConnectionDialog;
+import org.w3c.dom.Node;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.SocketTimeoutException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -162,6 +180,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         props.setLook(operateAreaLabel);
         operateAreaLabel.setLayoutData(getLeftFormDataFromPre(wStepname, middle, margin));
         operateAreaText = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+        operateAreaText.setEditable(false);
         operateAreaText.addModifyListener(lsMod);
         props.setLook(operateAreaText);
         operateAreaText.setLayoutData(getRightFormDataFromPre(wStepname, middle, margin));
@@ -175,6 +194,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         props.setLook(platformLabel);
         platformLabel.setLayoutData(getLeftFormDataFromPre(operateAreaLabel, middle, margin));
         platformText = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+        platformText.setEditable(false);
         platformText.addModifyListener(lsMod);
         props.setLook(platformText);
         platformText.setLayoutData(getRightFormDataFromPre(operateAreaLabel, middle, margin));
@@ -188,6 +208,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         props.setLook(machineLabel);
         machineLabel.setLayoutData(getLeftFormDataFromPre(platformLabel, middle, margin));
         machineText = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+        machineText.setEditable(false);
         machineText.addModifyListener(lsMod);
         props.setLook(machineText);
         machineText.setLayoutData(getRightFormDataFromPre(platformLabel, middle, margin));
@@ -266,6 +287,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         };
         wCancel.addListener(SWT.Selection, lsCancel);
         wOK.addListener(SWT.Selection, lsOK);
+        wGet.addListener(SWT.Selection, lsGet);
         operateButton.addListener(SWT.Selection, getOperate);
         platformButton.addListener(SWT.Selection, getPlatform);
         machineButton.addListener(SWT.Selection, getMachine);
@@ -346,6 +368,19 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 点击获取变量按钮调用
      */
     private void get() {
+        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
+        Database database = new Database(loggingObject, databaseMeta);
+        try {
+            RowMetaInterface rowMetaInterface = database.getTableFields("operationarea");
+            String[] str = rowMetaInterface.getFieldNames();
+            int r = 0;
+            for (String s : str) {
+                changeTableView.setText(s, 1, r++);
+            }
+        } catch (Exception e) {
+
+        }
+
 
     }
 
@@ -353,91 +388,68 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 获取工作区
      */
     private void getOperate() {
-//        DatabaseMeta databaseMeta = transMeta.findDatabase("matterhorn");
-        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
-        Database database = new Database(loggingObject, databaseMeta);
-        List<Map<String,Object>> rows = null;
-        try {
-            database.connect();
-            PreparedStatement ps = database.prepareSQL("select * from operationarea  order by id");
-            ResultSet rs = ps.executeQuery();
-            rows=getRow(rs);
-        } catch (Exception e) {
+        String db = "matterhorn";
+        String sql = "select * from operationarea  order by id";
+        String shellText = "工作区";
+        String message = "请选择工作区";
+        getdialog(db, sql, shellText, message);
+    }
 
-        }
-        List list=rows.stream().map(e->e.get("name")).collect(Collectors.toList());
-        String[] string=new String[list.size()];
-        list.toArray(string);
-        String[] operateAreas = {"工作区1", "工作区2"};
-        operateAreas = Const.sortStrings(operateAreas);
-        //EnterSelectionDialog dialog = new EnterSelectionDialog(shell, string, "工作区", "请选择工作区");
-//        String selection = dialog.open();
-//        if (selection != null) {
-//            operateAreaText.setText(selection);
-//        }
-//        EnterMappingDialog mdialog=new EnterMappingDialog(shell,string,operateAreas);
-//        mdialog.open();
-//        SelectRowDialog srdialog=new SelectRowDialog(shell, ,)
-    }
-    
-    private List<Map<String, Object>> getRow(ResultSet rs ){
-        List<Map<String, Object>> rows = new ArrayList<>();
-        Map<String, Object> row;
-        try{
-            // 通过编译对象执行SQL指令
-            if (rs != null) {
-                // 获取结果集的元数据
-                ResultSetMetaData rsd = rs.getMetaData();
-                // 获取当前表的总列数
-                int columnCount = rsd.getColumnCount();
-                // 遍历结果集
-                while (rs.next()) {
-                    // 创建存储当前行的集合对象
-                    row = new HashMap<>();
-                    // 遍历当前行每一列
-                    for (int i = 0; i < columnCount; i++) {
-                        // 获取列的编号获取列名
-                        String columnName = rsd.getColumnName(i + 1);
-                        // 通过列名获取当前遍历列的值
-                        Object columnValue = rs.getObject(columnName);
-                        // 列名和获取值作为 K 和 V 存入Map集合
-                        row.put(columnName, columnValue);
-                    }
-                    // 把每次遍历列的Map集合存储到List集合中
-                    rows.add(row);
-                }
-            }
-        }catch (Exception e){
-            
-        }
-        return rows;
-    }
-    
     /**
      * 获取平台
      */
     private void getPlatform() {
-        String[] platforms = {"平台1", "平台2"};
-        platforms = Const.sortStrings(platforms);
-        EnterSelectionDialog dialog = new EnterSelectionDialog(shell, platforms, "平台", "请选择平台");
-        String selection = dialog.open();
-        if (selection != null) {
-            platformText.setText(selection);
-        }
+        String db = "matterhorn";
+        String sql = "select * from platform  order by id";
+        String shellText = "平台";
+        String message = "请选择平台";
+        getdialog(db, sql, shellText, message);
     }
 
     /**
      * 获取机采设备
      */
     private void getMachine() {
-        String[] machines = {"设备1", "设备2"};
-        machines = Const.sortStrings(machines);
-        EnterSelectionDialog dialog = new EnterSelectionDialog(shell, machines, "设备", "请选择设备");
+        String db = "matterhorn";
+        String sql = "select * from mechanicalminingmachine  order by id";
+        String shellText = "设备";
+        String message = "请选择设备";
+        getdialog(db, sql, shellText, message);
+    }
+
+    /**
+     * 从数据库查询信息并且返回一个选择框
+     *
+     * @param db        数据库名
+     * @param sql       sql语句
+     * @param shellText 选择框标题
+     * @param message   选择框提示信息
+     */
+    private void getdialog(String db, String sql, String shellText, String message) {
+        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
+        // DatabaseMeta databaseMeta=transMeta.findDatabase(db);
+        Database database = new Database(loggingObject, databaseMeta);
+        List<Map<String, Object>> rows = null;
+        try {
+            database.connect();
+            PreparedStatement ps = database.prepareSQL(sql);
+            ResultSet set = ps.executeQuery();
+            rows = getRow(set);
+        } catch (Exception ignored) {
+
+        }
+        assert rows != null;
+        List list = rows.stream().map(e -> e.get("id") + "_" + e.get("name")).collect(Collectors.toList());
+        String[] string = new String[list.size()];
+        list.toArray(string);
+
+        EnterSelectionDialog dialog = new EnterSelectionDialog(shell, string, shellText, message);
         String selection = dialog.open();
         if (selection != null) {
             machineText.setText(selection);
         }
     }
+
 
     /**
      * 点击取消按钮调用，需要在open中绑定控件监听器。
@@ -457,15 +469,6 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     private void ok() {
         //确认时必须返回步骤名
         stepname = wStepname.getText();
-//    int count =changeTableView.nrNonEmpty();
-//    Map<String,String> tableData=new HashMap<>();
-//    for(int i=0;i<count;i++){
-//      TableItem item=changeTableView.getNonEmpty(i);
-//      tableData.put(item.getText(1),item.getText(2));
-//    }
-//    meta.setChangeStr(tableData);
-        // meta.setChangeCol(changeColLabelText.getText());
-        // meta.setOutputField( changeColLabelText.getText() );
         List<EfficiencyField> efficiencyFields = new ArrayList<>();
         meta.setOperateArea(operateAreaText.getText());
         meta.setPlatform(platformText.getText());
@@ -537,22 +540,42 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         return valName;
     }
 
-//    public String getColName(){
-//        try{
-//            stepname = wStepname.getText();
-//            RowMetaInterface rowMetaInterface =transMeta.getPrevInfoFields(stepname);
-//            int num=rowMetaInterface.size();
-//            System.out.println("大小是"+num);
-//            List<String> colList=new ArrayList<>();
-//            for(int i=0;i<num;i++){
-//                ValueMetaInterface  v=rowMetaInterface.getValueMeta(i);
-//                colList.add(v.getName());
-//            }
-//            colList.forEach(System.out::println);
-//            return meta.setColNameList(colList);
-//        }catch(KettleStepException e){
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
+    /**
+     * 解析返回参数
+     *
+     * @param rs 查询数据库返回的字节集
+     * @return list集合
+     */
+    private List<Map<String, Object>> getRow(ResultSet rs) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row;
+        try {
+            // 通过编译对象执行SQL指令
+            if (rs != null) {
+                // 获取结果集的元数据
+                ResultSetMetaData rsd = rs.getMetaData();
+                // 获取当前表的总列数
+                int columnCount = rsd.getColumnCount();
+                // 遍历结果集
+                while (rs.next()) {
+                    // 创建存储当前行的集合对象
+                    row = new HashMap<>();
+                    // 遍历当前行每一列
+                    for (int i = 0; i < columnCount; i++) {
+                        // 获取列的编号获取列名
+                        String columnName = rsd.getColumnName(i + 1);
+                        // 通过列名获取当前遍历列的值
+                        Object columnValue = rs.getObject(columnName);
+                        // 列名和获取值作为 K 和 V 存入Map集合
+                        row.put(columnName, columnValue);
+                    }
+                    // 把每次遍历列的Map集合存储到List集合中
+                    rows.add(row);
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return rows;
+    }
 }

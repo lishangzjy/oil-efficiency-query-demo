@@ -89,7 +89,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      */
     @Injection( name = "OUTPUT_FIELD" )
     private String outputField;
-
+    private DatabaseMeta databaseMeta;
     private String operateArea;
     private String platform;
     private String machine;
@@ -209,6 +209,8 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     @Override
     public void loadXML(Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore ) throws KettleXMLException {
         try {
+            String con = XMLHandler.getTagValue( stepnode, "connection" );
+            databaseMeta = DatabaseMeta.findDatabase( databases, con );
             String fieldStr = XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "fields"));
             setEfficiencyFields(new ObjectMapper().readValue(fieldStr, List.class));
             setOperateArea(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "operateArea")));
@@ -250,7 +252,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     public void readRep(Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases )
             throws KettleException {
         try {
-//            // $NON-NLS-1$
+            databaseMeta = rep.loadDatabaseMetaFromStepAttribute( id_step, "id_connection", databases );
 //            outputField  = rep.getStepAttributeString( id_step, "outputfield" );
         } catch ( Exception e ) {
             throw new KettleException( "Unable to load step from repository", e );
