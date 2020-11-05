@@ -3,16 +3,16 @@ package org.pentaho.di.sdk.samples.steps.demo;
 import lombok.Data;
 
 /**
- * @author Li Chunsheng
  * 数据库字段实体类
+ *
+ * @author Li Chunsheng
  */
-
 @Data
 public class EfficiencyField {
     /**
-     * 数据库字段名
+     * 能效字段名
      */
-    private String field;
+    private String effField;
     /**
      * 数据库字段类型
      */

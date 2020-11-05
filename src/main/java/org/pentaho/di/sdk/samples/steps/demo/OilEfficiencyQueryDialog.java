@@ -34,16 +34,12 @@ import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.*;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.KettleEnvironment;
-import org.pentaho.di.core.Result;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
-import org.pentaho.di.ui.core.dialog.SelectRowDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
@@ -333,8 +329,8 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         }
         if (meta.getEfficiencyFields() != null) {
             for (EfficiencyField efficiencyField : meta.getEfficiencyFields()) {
-                if (efficiencyField.getField() != null) {
-                    changeTableView.setText(efficiencyField.getField(), 1, row);
+                if (efficiencyField.getEffField() != null) {
+                    changeTableView.setText(efficiencyField.getEffField(), 1, row);
                 }
                 if (efficiencyField.getType() != null) {
                     changeTableView.setText(efficiencyField.getType(), 2, row);
@@ -479,7 +475,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         for (int i = 0; i < count; i++) {
             TableItem item = changeTableView.getNonEmpty(i);
             data = new EfficiencyField();
-            data.setField(item.getText(1));
+            data.setEffField(item.getText(1));
             boolean bool = Arrays.asList(ValueMetaFactory.getValueMetaNames()).contains(item.getText(2));
             if (bool) {
                 data.setType(item.getText(2));
