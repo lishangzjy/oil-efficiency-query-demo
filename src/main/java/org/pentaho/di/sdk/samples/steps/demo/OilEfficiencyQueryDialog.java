@@ -22,6 +22,7 @@
 
 package org.pentaho.di.sdk.samples.steps.demo;
 
+import com.cet.eem.common.definition.ColumnDef;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -41,6 +42,7 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
+import org.pentaho.di.sdk.samples.steps.demo.dao.ModelQueryDao;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
@@ -49,6 +51,7 @@ import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 
+import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -74,6 +77,12 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 步骤元数据
      */
     private OilEfficiencyQueryMeta meta;
+
+    /**
+     * 模型查询对象
+     */
+    @Resource
+    private ModelQueryDao modelQueryDao;
 
     private Label operateAreaLabel;
     private Text operateAreaText;
@@ -471,6 +480,26 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         }
     }
 
+    /**
+     * 获取具体的层级对象
+     *
+     * @param ids 层级对象ID列表
+     * @return 层级对象格式为【id_name】的数组
+     */
+    private List<String> getLevelObject(String modelLabel, List<Long> ids) {
+
+        List<Map<String, Object>> modelData = modelQueryDao.getModelData(modelLabel, ids, true);
+        List<String> idAndNames = new ArrayList<>();
+        modelData.forEach(rowMap -> {
+            Object idOpt = rowMap.get(ColumnDef.ID);
+            Object nameOpt = rowMap.get(ColumnDef.NAME);
+            if (idOpt != null && nameOpt != null) {
+                idAndNames.add(idOpt + "_" + nameOpt);
+            }
+        });
+
+        return idAndNames;
+    }
 
     /**
      * 点击取消按钮调用，需要在open中绑定控件监听器。
