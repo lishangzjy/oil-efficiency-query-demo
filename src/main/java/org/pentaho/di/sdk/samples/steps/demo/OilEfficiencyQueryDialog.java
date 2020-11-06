@@ -23,7 +23,6 @@
 package org.pentaho.di.sdk.samples.steps.demo;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -35,35 +34,21 @@ import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.*;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.KettleEnvironment;
-import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
-import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleFileException;
-import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
-import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.steps.insertupdate.InsertUpdateMeta;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
-import org.pentaho.di.ui.core.dialog.SelectRowDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.ui.database.DatabaseConnectionDialog;
-import org.w3c.dom.Node;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.net.SocketTimeoutException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -337,31 +322,28 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 在打开插件Dialog前进行数据填充，填充后显示Dialog，一般在shell.open()之前被open()调用。
      */
     private void populateDialog() {
-        wStepname.selectAll();
-
-        int row = 0;
-        if (meta.getOperateArea() != null) {
-            operateAreaText.setText(meta.getOperateArea());
-        }
-        if (meta.getPlatform() != null) {
-            platformText.setText(meta.getPlatform());
-        }
-        if (meta.getMachine() != null) {
-            machineText.setText(meta.getMachine());
-        }
-        if (meta.getEfficiencyFields() != null) {
-            for (EfficiencyField efficiencyField : meta.getEfficiencyFields()) {
-                if (efficiencyField.getEffField() != null) {
-                    changeTableView.setText(efficiencyField.getEffField(), 1, row);
-                }
-                if (efficiencyField.getType() != null) {
-                    changeTableView.setText(efficiencyField.getType(), 2, row);
-                }
-                if (efficiencyField.getSelected() != null) {
-                    changeTableView.setText(efficiencyField.getSelected(), 3, row++);
-                }
-            }
-        }
+//        wStepname.selectAll();
+//        String operateArea=meta.getOilManagementModels().get(0).getName();
+//        String platform=meta.getOilManagementModels().get(1).getName();
+//        String machine=meta.getOilManagementModels().get(2).getName();
+//        int row = 0;
+//        if (operateArea != null) {
+//            operateAreaText.setText(operateArea);
+//        }
+//        if (platform != null) {
+//            platformText.setText(platform);
+//        }
+//        if (machine != null) {
+//            machineText.setText(machine);
+//        }
+//        if (meta.getEffFieldMetas() != null) {
+//            for (ValueMetaInterface valueMeta : meta.getEffFieldMetas()) {
+//                if (valueMeta.getName() != null) {
+//                    changeTableView.setText(valueMeta.getName(), 1, row);
+//                }
+//                changeTableView.setText(valueMeta.getTypeDesc(), 2, row);
+//            }
+//        }
     }
 
     /**
@@ -382,6 +364,45 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         }
 
 
+    }
+
+    /**
+     * 解析返回参数
+     *
+     * @param rs 查询数据库返回的字节集
+     * @return list集合
+     */
+    private List<Map<String, Object>> getRow(ResultSet rs) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row;
+        try {
+            // 通过编译对象执行SQL指令
+            if (rs != null) {
+                // 获取结果集的元数据
+                ResultSetMetaData rsd = rs.getMetaData();
+                // 获取当前表的总列数
+                int columnCount = rsd.getColumnCount();
+                // 遍历结果集
+                while (rs.next()) {
+                    // 创建存储当前行的集合对象
+                    row = new HashMap<>();
+                    // 遍历当前行每一列
+                    for (int i = 0; i < columnCount; i++) {
+                        // 获取列的编号获取列名
+                        String columnName = rsd.getColumnName(i + 1);
+                        // 通过列名获取当前遍历列的值
+                        Object columnValue = rs.getObject(columnName);
+                        // 列名和获取值作为 K 和 V 存入Map集合
+                        row.put(columnName, columnValue);
+                    }
+                    // 把每次遍历列的Map集合存储到List集合中
+                    rows.add(row);
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return rows;
     }
 
     /**
@@ -469,26 +490,37 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     private void ok() {
         //确认时必须返回步骤名
         stepname = wStepname.getText();
-        List<EfficiencyField> efficiencyFields = new ArrayList<>();
-        meta.setOperateArea(operateAreaText.getText());
-        meta.setPlatform(platformText.getText());
-        meta.setMachine(machineText.getText());
-        int count = changeTableView.nrNonEmpty();
-        EfficiencyField data;
-        for (int i = 0; i < count; i++) {
-            TableItem item = changeTableView.getNonEmpty(i);
-            data = new EfficiencyField();
-            data.setEffField(item.getText(1));
-            boolean bool = Arrays.asList(ValueMetaFactory.getValueMetaNames()).contains(item.getText(2));
-            if (bool) {
-                data.setType(item.getText(2));
-            }
-            if ("true".equals(item.getText(3)) || "false".equals(item.getText(3))) {
-                data.setSelected(item.getText(3));
-            }
-            efficiencyFields.add(data);
-        }
-        meta.setEfficiencyFields(efficiencyFields);
+//        List<OilManagementModel> oilManagementModels = new ArrayList<>();
+//        OilManagementModel oilModel=new OilManagementModel();
+//        String [] oText=operateAreaText.getText().split("_",2);
+//        oilModel.setName(oText[1]);
+//        oilManagementModels.add(oilModel);
+//        oilModel=new OilManagementModel();
+//        String [] pText=platformText.getText().split("_",2);
+//        oilModel.setName(pText[1]);
+//        oilManagementModels.add(oilModel);
+//        oilModel=new OilManagementModel();
+//        String [] mText = machineText.getText().split("_",2);
+//        oilModel.setName(mText[1]);
+//        meta.setOilManagementModels(oilManagementModels);
+//
+//        int count = changeTableView.nrNonEmpty();
+//        List<ValueMetaInterface> valueMetas=new ArrayList<>();
+//        ValueMetaInterface valueMeta=new ValueMetaBase();
+//        for (int i = 0; i < count; i++) {
+//            TableItem item = changeTableView.getNonEmpty(i);
+//            valueMeta=new ValueMetaBase();
+//            valueMeta.setName(item.getText(1));
+//            boolean bool = Arrays.asList(ValueMetaFactory.getValueMetaNames()).contains(item.getText(2));
+//            if (bool) {
+//                valueMeta.setsType(1);
+//            }
+//            if ("true".equals(item.getText(3)) || "false".equals(item.getText(3))) {
+//                data.setSelected(item.getText(3));
+//            }
+//            efficiencyFields.add(data);
+//        }
+//        meta.setEfficiencyFields(efficiencyFields);
         dispose();
     }
 
@@ -540,42 +572,4 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         return valName;
     }
 
-    /**
-     * 解析返回参数
-     *
-     * @param rs 查询数据库返回的字节集
-     * @return list集合
-     */
-    private List<Map<String, Object>> getRow(ResultSet rs) {
-        List<Map<String, Object>> rows = new ArrayList<>();
-        Map<String, Object> row;
-        try {
-            // 通过编译对象执行SQL指令
-            if (rs != null) {
-                // 获取结果集的元数据
-                ResultSetMetaData rsd = rs.getMetaData();
-                // 获取当前表的总列数
-                int columnCount = rsd.getColumnCount();
-                // 遍历结果集
-                while (rs.next()) {
-                    // 创建存储当前行的集合对象
-                    row = new HashMap<>();
-                    // 遍历当前行每一列
-                    for (int i = 0; i < columnCount; i++) {
-                        // 获取列的编号获取列名
-                        String columnName = rsd.getColumnName(i + 1);
-                        // 通过列名获取当前遍历列的值
-                        Object columnValue = rs.getObject(columnName);
-                        // 列名和获取值作为 K 和 V 存入Map集合
-                        row.put(columnName, columnValue);
-                    }
-                    // 把每次遍历列的Map集合存储到List集合中
-                    rows.add(row);
-                }
-            }
-        } catch (Exception e) {
-
-        }
-        return rows;
-    }
 }

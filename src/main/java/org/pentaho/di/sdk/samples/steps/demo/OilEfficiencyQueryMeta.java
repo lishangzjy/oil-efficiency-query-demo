@@ -22,7 +22,9 @@
 
 package org.pentaho.di.sdk.samples.steps.demo;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -39,6 +41,8 @@ import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.i18n.BaseMessages;
@@ -88,18 +92,69 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      * Stores the name of the field added to the row-stream.
      */
     @Injection( name = "OUTPUT_FIELD" )
+    // TODO: 原始demo组件的字段，待移除
     private String outputField;
+
     private DatabaseMeta databaseMeta;
-    private String operateArea;
-    private String platform;
-    private String machine;
-    private List<EfficiencyField> efficiencyFields;
+
+    // TODO: 三个字段存到 油气田管理层级模型中
+//    private String operateArea;
+//    private String platform;
+//    private String machine;
+
+    // TODO：用ValueMetaInterface 代替
+//    private List<EfficiencyField> efficiencyFields;
+
+    /**
+     * TODO： 待移除
+     * 油气田管理层级模型
+     */
+//    private List<OilManagementModel> oilManagementModels;
+
+
+    /**
+     * 查询条件，表示某个字段所在的条件范围
+     *      流程查询能效数据时用到，需要在button确认按钮事件时候读取并初始化。
+     *      比如:
+     *          1. modelLabel字段等于 "platform"
+     *          2. modelId 在 (1, 2, 3) 范围内
+     *      需要在meta对象构建的时候从文件中反序列化出来。
+     *
+     *      当字段（key值）为modelLabel时候，我们取查询条件只取list的最后一个元素
+     */
+    private Map<ValueMetaInterface, List<Object>> fieldConditionMap;
+
+    /**
+     * 存储对象与时段字段，作为能效数据的基础维度，执行查询时候放能效字段前
+     *      1. 对象字段 -> modelLabel，modelId
+     *      2. 时段字段 -> aggregationCycle, logTime
+     */
+    private List<ValueMetaInterface> objectAndTimeFieldMetas;
+
+    /**
+     * 存储能效字段，不包括label, id, name
+     * 在确定按钮事件发生时，按展示的顺序，加到这个列表中
+     */
+    private List<ValueMetaInterface> effFieldMetas;
 
     /**
      * Constructor should call super() to make sure the base class has a chance to initialize properly.
      */
     public OilEfficiencyQueryMeta() {
         super();
+        /*
+         * 初始化要展示的对象和时间字段
+         */
+        objectAndTimeFieldMetas.add(new ValueMetaBase("modelLabel", ValueMetaInterface.TYPE_STRING));
+        objectAndTimeFieldMetas.add(new ValueMetaBase("modelId", ValueMetaInterface.TYPE_INTEGER));
+        objectAndTimeFieldMetas.add(new ValueMetaBase("aggregationCycle", ValueMetaInterface.TYPE_INTEGER));
+        objectAndTimeFieldMetas.add(new ValueMetaBase("logTime", ValueMetaInterface.TYPE_INTEGER));
+
+//        // TODO： 待移除
+//        oilManagementModels = new ArrayList<>(3);
+//        oilManagementModels.add(new OilManagementModel("operationArea".toLowerCase()));
+//        oilManagementModels.add(new OilManagementModel("platform".toLowerCase()));
+//        oilManagementModels.add(new OilManagementModel("mechanicalMiningMachine".toLowerCase()));
     }
 
     /**
@@ -186,13 +241,19 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
 
         StringBuilder xml = new StringBuilder();
 
-        xml.append(XMLHandler.addTagValue("operateArea",operateArea));
-        xml.append(XMLHandler.addTagValue("platform",platform));
-        xml.append(XMLHandler.addTagValue("machine",machine));
+//        xml.append(XMLHandler.addTagValue("operateArea",operateArea));
+//        xml.append(XMLHandler.addTagValue("platform",platform));
+//        xml.append(XMLHandler.addTagValue("machine",machine));
+//        String fieldStr = new ObjectMapper().writeValueAsString(efficiencyFields);
+//        String oilModels=new ObjectMapper().writeValueAsString(oilManagementModels);
+//        xml.append(XMLHandler.addTagValue("oilModels",oilModels));
+//        xml.append(XMLHandler.addTagValue("operateArea",oilManagementModels.get(0).getName()));
+//        xml.append(XMLHandler.addTagValue("platform",oilManagementModels.get(1).getName()));
+//        xml.append(XMLHandler.addTagValue("machine",oilManagementModels.get(2).getName()));
 
-        String fieldStr = new ObjectMapper().writeValueAsString(efficiencyFields);
+        String fieldStr = new ObjectMapper().writeValueAsString(effFieldMetas);
         xml.append(XMLHandler.addTagValue("fieldstr",fieldStr));
-
+//        String objectAndTimeFieldMetas=new  ObjectMapper().writeValueAsString(objectAndTimeFieldMetas));
         return xml.toString();
     }
 
@@ -212,10 +273,13 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
             String con = XMLHandler.getTagValue( stepnode, "connection" );
             databaseMeta = DatabaseMeta.findDatabase( databases, con );
             String fieldStr = XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "fields"));
-            setEfficiencyFields(new ObjectMapper().readValue(fieldStr, List.class));
-            setOperateArea(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "operateArea")));
-            setPlatform(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "platform")));
-            setMachine(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "machine")));
+            setEffFieldMetas(new ObjectMapper().readValue(fieldStr,List.class));
+            String oilModels=XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode,"oilModels"));
+//            setOilManagementModels(new ObjectMapper().readValue(oilModels,List.class));
+//            setEfficiencyFields(new ObjectMapper().readValue(fieldStr, List.class));
+//            setOperateArea(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "operateArea")));
+//            setPlatform(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "platform")));
+//            setMachine(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "machine")));
         } catch ( Exception e ) {
             throw new KettleXMLException( "Demo plugin unable to read step info from XML node", e );
         }
