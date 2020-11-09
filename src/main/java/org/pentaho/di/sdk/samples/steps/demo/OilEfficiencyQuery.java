@@ -22,7 +22,6 @@
 
 package org.pentaho.di.sdk.samples.steps.demo;
 
-import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.i18n.BaseMessages;
@@ -30,8 +29,6 @@ import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -45,9 +42,6 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
      * for i18n purposes
      */
     private static final Class<?> PKG = OilEfficiencyQueryMeta.class;
-
-    private List<String> changeColList;
-    private Map<String,String> changeStr;
 
     /**
      * The constructor should simply pass on its arguments to the parent class.
