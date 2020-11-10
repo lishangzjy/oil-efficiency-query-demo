@@ -89,22 +89,25 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     // TODO: 原始demo组件的字段，待移除
     private String outputField;
 
-    private DatabaseMeta databaseMeta;
-
-    // TODO: 三个字段存到 油气田管理层级模型中
-//    private String operateArea;
-//    private String platform;
-//    private String machine;
-
-    // TODO：用ValueMetaInterface 代替
-//    private List<EfficiencyField> efficiencyFields;
+    /**
+     * 存储模型服务IP
+     */
+    private String modelServiceIp;
 
     /**
-     * TODO： 待移除
-     * 油气田管理层级模型
+     * 存储模型服务端口
      */
-//    private List<OilManagementModel> oilManagementModels;
+    private String modelServicePort;
 
+    /**
+     * 数据库元信息
+     */
+    private DatabaseMeta databaseMeta;
+
+    /**
+     * 父类的步骤元信息
+     */
+    private StepMeta parentStepMeta;
 
     /**
      * 查询条件，表示某个字段所在的条件范围
@@ -144,11 +147,9 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
         objectAndTimeFieldMetas.add(new ValueMetaBase("aggregationCycle", ValueMetaInterface.TYPE_INTEGER));
         objectAndTimeFieldMetas.add(new ValueMetaBase("logTime", ValueMetaInterface.TYPE_INTEGER));
 
-//        // TODO： 待移除
-//        oilManagementModels = new ArrayList<>(3);
-//        oilManagementModels.add(new OilManagementModel("operationArea".toLowerCase()));
-//        oilManagementModels.add(new OilManagementModel("platform".toLowerCase()));
-//        oilManagementModels.add(new OilManagementModel("mechanicalMiningMachine".toLowerCase()));
+        // 初始化父类的步骤元
+        parentStepMeta = getParentStepMeta();
+        // TODO: 获取环境变量，设置模型服务IP和端口
     }
 
     /**
@@ -192,22 +193,6 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     @Override
     public void setDefault() {
         setOutputField( "demo_field" );
-    }
-
-    /**
-     * Getter for the name of the field added by this step
-     * @return the name of the field added
-     */
-    public String getOutputField() {
-        return outputField;
-    }
-
-    /**
-     * Setter for the name of the field added by this step
-     * @param outputField the name of the field added
-     */
-    public void setOutputField( String outputField ) {
-        this.outputField = outputField;
     }
 
     /**
