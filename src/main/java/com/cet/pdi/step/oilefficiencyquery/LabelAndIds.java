@@ -1,4 +1,4 @@
-package org.pentaho.di.sdk.samples.steps.demo;
+package com.cet.pdi.step.oilefficiencyquery;
 
 
 import java.util.List;

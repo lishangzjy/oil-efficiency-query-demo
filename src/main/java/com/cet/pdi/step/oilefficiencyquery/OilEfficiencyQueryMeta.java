@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.sdk.samples.steps.demo;
+package com.cet.pdi.step.oilefficiencyquery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -63,7 +63,7 @@ import java.util.Map;
         id = "DemoStep",
         name = "DemoStep.Name",
         description = "DemoStep.TooltipDesc",
-        image = "org/pentaho/di/sdk/samples/steps/demo/resources/demo.svg",
+        image = "com.cet.pdi.step.oilefficiencyquery/resources/demo.svg",
         categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Transform",
         i18nPackageName = "org.pentaho.di.sdk.samples.steps.demo",
         documentationUrl = "DemoStep.DocumentationURL",

@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.sdk.samples.steps.demo;
+package com.cet.pdi.step.oilefficiencyquery;
 
 import com.cet.eem.common.definition.ColumnDef;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,7 +38,7 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
-import org.pentaho.di.sdk.samples.steps.demo.dao.ModelQueryDao;
+import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;

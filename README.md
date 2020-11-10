@@ -103,7 +103,7 @@ TODO
 		  * 插件仓库节点 **settings -> profiles -> profile -> pluginRepositories**
 		
 		* maven完整文件链接给到，注意修改本地maven仓库路径。
-[settings.xml](.\settings.xml)
+[settings.xml](settings.xml)
 
 ## 2. 软件依赖项
 ## 3. 最新发布
