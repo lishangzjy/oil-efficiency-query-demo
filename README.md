@@ -31,12 +31,12 @@
 * **函数入参**
     * **String modelLabel** --> 模型label条件
 * **函数返回**
-    * List\<ModelProperties\> --> 单个模型的属性元列表，包含字段名，字段类型等重要信息。
+    * **List\<ModelProperties\>** --> 单个模型的属性元列表，包含字段名，字段类型等重要信息。
 ###### 3. 流程执行时候，查询模型服务数据
 * **函数入参**
 	* **String modelLable** --> 模型label条件
 	* **List\<Long\> ids** --> 模型ID列表条件
-	* **List<\String\>** --> 要查询的字段名
+	* **List\<String\> props** --> 要查询的字段名
 * **函数返回值**
 	* **List\<ObjectEnergyEff\> objectEffsList**
 		* 每一个ObjectEnergyEff是一个对象一个时段的多种能效值的一条记录。
