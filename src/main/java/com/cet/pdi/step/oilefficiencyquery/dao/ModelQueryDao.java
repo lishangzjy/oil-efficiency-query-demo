@@ -4,9 +4,12 @@ import com.cet.eem.common.definition.ColumnDef;
 import com.cet.eem.common.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.json.JSONObject;
 import org.pentaho.di.core.KettleVariablesList;
 import com.cet.pdi.step.oilefficiencyquery.constant.ModelQueryMethodEnum;
 import org.springframework.stereotype.Repository;
@@ -32,22 +35,19 @@ public class ModelQueryDao {
     private static RestTemplate restTemplate;
 
     /**
-     * 配置中模型服务IP的键
+     * 存配置中模型服务IP的值
      */
-    private final String MODEL_SERVICE_IP = "model-service-ip";
+    private final String modelServiceIp;
 
     /**
-     * 配置中模型服务的PORT的键
+     * 配置中模型服务的PORT的值
      */
-    private final String MODEL_SERVICE_PORT = "model-service-port";
+    private final Integer modelServicePort;
 
-    /**
-     * kettle环境变量
-     */
-    private final Map<String, String> kettleVariables = KettleVariablesList.getInstance().getDefaultValueMap();
-
-    public ModelQueryDao() {
+    public ModelQueryDao(String modelServiceIp, Integer modelServicePort) {
         restTemplate = new RestTemplate();
+        this.modelServiceIp = modelServiceIp;
+        this.modelServicePort = modelServicePort;
     }
 
 
@@ -63,8 +63,6 @@ public class ModelQueryDao {
     @SneakyThrows
     private URI buildQueryUri(String modelLabel, ModelQueryMethodEnum queryType) {
         URIBuilder builder = new URIBuilder();
-        String host = kettleVariables.get(MODEL_SERVICE_IP);
-        String port = kettleVariables.get(MODEL_SERVICE_PORT);
         String path;
         String pathPrefix = queryType.getPath();
         switch (queryType) {
@@ -80,7 +78,7 @@ public class ModelQueryDao {
                 return null;
             }
         }
-        builder.setScheme("http").setHost(host).setPort(Integer.parseInt(port)).setPath(path);
+        builder.setScheme("http").setHost(modelServiceIp).setPort(modelServicePort).setPath(path);
         return builder.build();
     }
 
@@ -165,7 +163,8 @@ public class ModelQueryDao {
             return new HashMap<>(2);
         }
         ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue((String) result.getData(), new TypeReference<Map<String, Object>>() {
+        String dataStr = objectMapper.writeValueAsString(result.getData());
+        return objectMapper.readValue(dataStr, new TypeReference<Map<String, Object>>() {
         });
     }
 
