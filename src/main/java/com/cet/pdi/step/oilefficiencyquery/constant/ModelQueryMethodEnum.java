@@ -1,4 +1,4 @@
-package org.pentaho.di.sdk.samples.steps.demo.constant;
+package com.cet.pdi.step.oilefficiencyquery.constant;
 
 import lombok.Getter;
 

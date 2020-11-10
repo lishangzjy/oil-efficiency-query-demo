@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.pentaho.di.sdk.samples.steps.demo;
+package com.cet.pdi.step.oilefficiencyquery;
 
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -28,9 +28,6 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 业务逻辑实现，负责数据处理，转换和流转。这里面主要由processRow()方法来处理。

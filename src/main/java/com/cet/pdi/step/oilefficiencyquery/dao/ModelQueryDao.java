@@ -1,4 +1,4 @@
-package org.pentaho.di.sdk.samples.steps.demo.dao;
+package com.cet.pdi.step.oilefficiencyquery.dao;
 
 import com.cet.eem.common.definition.ColumnDef;
 import com.cet.eem.common.model.*;
@@ -8,7 +8,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.pentaho.di.core.KettleVariablesList;
-import org.pentaho.di.sdk.samples.steps.demo.constant.ModelQueryMethodEnum;
+import com.cet.pdi.step.oilefficiencyquery.constant.ModelQueryMethodEnum;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
