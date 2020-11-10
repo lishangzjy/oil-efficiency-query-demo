@@ -23,6 +23,9 @@
 package org.pentaho.di.sdk.samples.steps.demo;
 
 import com.cet.eem.common.definition.ColumnDef;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.*;
 import org.eclipse.swt.layout.FormAttachment;
@@ -404,7 +407,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
                 }
             }
         } catch (Exception e) {
-
+            return null;
         }
         return rows;
     }
@@ -417,7 +420,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         String sql = "select * from operationarea  order by id";
         String shellText = "工作区";
         String message = "请选择工作区";
-        getdialog(db, sql, shellText, message);
+        getDialog(db, sql, shellText, message);
     }
 
     /**
@@ -428,7 +431,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         String sql = "select * from platform  order by id";
         String shellText = "平台";
         String message = "请选择平台";
-        getdialog(db, sql, shellText, message);
+        getDialog(db, sql, shellText, message);
     }
 
     /**
@@ -439,18 +442,18 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         String sql = "select * from mechanicalminingmachine  order by id";
         String shellText = "设备";
         String message = "请选择设备";
-        getdialog(db, sql, shellText, message);
+        getDialog(db, sql, shellText, message);
     }
 
     /**
      * 从数据库查询信息并且返回一个选择框
      *
-     * @param db        数据库名
-     * @param sql       sql语句
-     * @param shellText 选择框标题
-     * @param message   选择框提示信息
+     * @param databaseName 数据库名
+     * @param sql          sql语句
+     * @param shellText    选择框标题
+     * @param message      选择框提示信息
      */
-    private void getdialog(String db, String sql, String shellText, String message) {
+    private void getDialog(String databaseName, String sql, String shellText, String message) {
         DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
         // DatabaseMeta databaseMeta=transMeta.findDatabase(db);
         Database database = new Database(loggingObject, databaseMeta);
@@ -464,7 +467,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
 
         }
         assert rows != null;
-        List list = rows.stream().map(e -> e.get("id") + "_" + e.get("name")).collect(Collectors.toList());
+        List<String> list = rows.stream().map(e -> e.get("id") + "_" + e.get("name")).collect(Collectors.toList());
         String[] string = new String[list.size()];
         list.toArray(string);
 
@@ -483,7 +486,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      */
     private List<String> getLevelObject(String modelLabel, List<Long> ids) {
 
-        List<Map<String, Object>> modelData = modelQueryDao.getModelData(modelLabel, ids, true);
+        List<Map<String, Object>> modelData = modelQueryDao.getModelData(modelLabel, ids, null);
         List<String> idAndNames = new ArrayList<>();
         modelData.forEach(rowMap -> {
             Object idOpt = rowMap.get(ColumnDef.ID);
@@ -494,6 +497,30 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         });
 
         return idAndNames;
+    }
+
+    /**
+     * 查询模型的属性
+     * 如果为空或解析异常，返回一个null
+     *
+     * @param modelLabel 模型label
+     * @return 元数据属性列集合
+     */
+    private List<Map<String, Object>> getModelProperties(String modelLabel) {
+        Map<String, Object> modelMeta = modelQueryDao.getModelMeta(modelLabel);
+        if (modelMeta == null) {
+            return new ArrayList<>();
+        }
+        final String propertyKey = "propertyList";
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Map<String, Object>> properties;
+        try {
+            properties = objectMapper.readValue((String) modelMeta.get(propertyKey), new TypeReference<List<Map<String, Object>>>() {
+            });
+            return properties;
+        } catch (JsonProcessingException jex) {
+            return null;
+        }
     }
 
     /**
