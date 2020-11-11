@@ -39,6 +39,8 @@ import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaBase;
+import org.pentaho.di.core.row.value.ValueMetaInteger;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.i18n.BaseMessages;
@@ -119,7 +121,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      *
      *      当字段（key值）为modelLabel时候，我们取查询条件只取list的最后一个元素
      */
-    private Map<ValueMetaInterface, List<Object>> fieldConditionMap;
+    private Map<String, List<Object>> fieldConditionMap;
 
     /**
      * 存储对象与时段字段，作为能效数据的基础维度，执行查询时候放能效字段前
@@ -142,10 +144,10 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
         /*
          * 初始化要展示的对象和时间字段
          */
-        objectAndTimeFieldMetas.add(new ValueMetaBase("modelLabel", ValueMetaInterface.TYPE_STRING));
-        objectAndTimeFieldMetas.add(new ValueMetaBase("modelId", ValueMetaInterface.TYPE_INTEGER));
-        objectAndTimeFieldMetas.add(new ValueMetaBase("aggregationCycle", ValueMetaInterface.TYPE_INTEGER));
-        objectAndTimeFieldMetas.add(new ValueMetaBase("logTime", ValueMetaInterface.TYPE_INTEGER));
+        objectAndTimeFieldMetas.add(new ValueMetaString("modelLabel"));
+        objectAndTimeFieldMetas.add(new ValueMetaInteger("modelId"));
+        objectAndTimeFieldMetas.add(new ValueMetaInteger("aggregationCycle"));
+        objectAndTimeFieldMetas.add(new ValueMetaInteger("logTime"));
 
         // 初始化父类的步骤元
         parentStepMeta = getParentStepMeta();
@@ -252,7 +254,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
             String con = XMLHandler.getTagValue( stepnode, "connection" );
             databaseMeta = DatabaseMeta.findDatabase( databases, con );
             String fieldStr = XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "fields"));
-            setEffFieldMetas(new ObjectMapper().readValue(fieldStr,List.class));
+            this.effFieldMetas = new ObjectMapper().readValue(fieldStr,List.class);
             String oilModels=XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode,"oilModels"));
 //            setOilManagementModels(new ObjectMapper().readValue(oilModels,List.class));
 //            setEfficiencyFields(new ObjectMapper().readValue(fieldStr, List.class));
