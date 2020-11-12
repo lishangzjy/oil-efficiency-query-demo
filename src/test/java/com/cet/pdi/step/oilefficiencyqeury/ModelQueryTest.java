@@ -99,6 +99,7 @@ public class ModelQueryTest {
 
     /**
      * 测试资源绑定文件
+     *
      * @throws IOException IO读取异常
      */
     @Test
