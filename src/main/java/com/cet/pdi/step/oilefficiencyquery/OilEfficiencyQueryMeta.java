@@ -28,6 +28,7 @@ import lombok.SneakyThrows;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -52,8 +53,14 @@ import org.pentaho.di.trans.step.*;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.PropertyResourceBundle;
+import java.util.ResourceBundle;
 
 /**
  * 插件元，可以将插件的变量保存在这个类，元数据的处理，
@@ -92,16 +99,6 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     private String outputField;
 
     /**
-     * 存储模型服务IP
-     */
-    private String modelServiceIp;
-
-    /**
-     * 存储模型服务端口
-     */
-    private String modelServicePort;
-
-    /**
      * 数据库元信息
      */
     private DatabaseMeta databaseMeta;
@@ -137,9 +134,14 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     private List<ValueMetaInterface> effFieldMetas;
 
     /**
+     * 用户kettle属性文件的资源绑定
+     */
+    private ResourceBundle bundle;
+
+    /**
      * Constructor should call super() to make sure the base class has a chance to initialize properly.
      */
-    public OilEfficiencyQueryMeta() {
+    public OilEfficiencyQueryMeta() throws IOException {
         super();
         /*
          * 初始化要展示的对象和时间字段
@@ -151,7 +153,9 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
 
         // 初始化父类的步骤元
         parentStepMeta = getParentStepMeta();
-        // TODO: 获取环境变量，设置模型服务IP和端口
+        // 设置资源绑定对象 kettle.properties
+        InputStream stream = new FileInputStream(Const.getKettlePropertiesFilename());
+        bundle = new PropertyResourceBundle(stream);
     }
 
     /**
@@ -162,7 +166,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      * @param name    the name of the step
      * @return       new instance of a dialog for this step
      */
-    public StepDialogInterface getDialog( Shell shell, StepMetaInterface meta, TransMeta transMeta, String name ) {
+    public StepDialogInterface getDialog( Shell shell, StepMetaInterface meta, TransMeta transMeta, String name ) throws IOException {
         return new OilEfficiencyQueryDialog( shell, meta, transMeta, name );
     }
 

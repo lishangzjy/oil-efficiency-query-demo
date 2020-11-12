@@ -2,25 +2,28 @@ package com.cet.pdi.step.oilefficiencyquery.dao;
 
 import com.cet.eem.common.definition.ColumnDef;
 import com.cet.eem.common.model.*;
+import com.cet.pdi.step.oilefficiencyquery.constant.ModelQueryMethodEnum;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.json.JSONObject;
-import org.pentaho.di.core.KettleVariablesList;
-import com.cet.pdi.step.oilefficiencyquery.constant.ModelQueryMethodEnum;
+import org.pentaho.di.core.Const;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
 
 /**
  * 模型查询持久化对象
+ * 1. 如果通过空参构造，则本类完成模型服务ip和port的获取；
+ * 2. 否则将构造参数中的ip和port作为模型服务ip和port。
+ * 3. 不提供Setter。
  *
  * @author Jinhua
  * @version 1.0
@@ -35,6 +38,16 @@ public class ModelQueryDao {
     private static RestTemplate restTemplate;
 
     /**
+     * 模型服务IP的键
+     */
+    private static final String MODEL_SERVICE_IP_KEY = "model_service_ip";
+
+    /**
+     * 模型服务port的键
+     */
+    private static final String MODEL_SERVICE_PORT_KEY = "model_service_port";
+
+    /**
      * 存配置中模型服务IP的值
      */
     private final String modelServiceIp;
@@ -44,6 +57,31 @@ public class ModelQueryDao {
      */
     private final Integer modelServicePort;
 
+    /**
+     * 资源绑定 kettle.properties
+     */
+    private ResourceBundle bundle;
+
+    /**
+     * 若不传入模型服务IP和端口，则读取资源绑定文件中的IP和端口
+     */
+    public ModelQueryDao() throws IOException {
+        // 1. 初始化rest接口请求工具
+        restTemplate = new RestTemplate();
+        // 2. 初始化资源绑定文件对象
+        InputStream stream = new FileInputStream(Const.getKettlePropertiesFilename());
+        this.bundle = new PropertyResourceBundle(stream);
+        // 3. 设置ip和port
+        this.modelServiceIp = bundle.getString(ModelQueryDao.getMODEL_SERVICE_IP_KEY());
+        this.modelServicePort = Integer.parseInt(ModelQueryDao.getMODEL_SERVICE_PORT_KEY());
+    }
+
+    /**
+     * 如果传入模型服务的IP和port，则直接按照传入的查询
+     *
+     * @param modelServiceIp   外部传入模型服务IP
+     * @param modelServicePort 外部传入模型服务端口
+     */
     public ModelQueryDao(String modelServiceIp, Integer modelServicePort) {
         restTemplate = new RestTemplate();
         this.modelServiceIp = modelServiceIp;
@@ -168,4 +206,23 @@ public class ModelQueryDao {
         });
     }
 
+    public static String getMODEL_SERVICE_IP_KEY() {
+        return MODEL_SERVICE_IP_KEY;
+    }
+
+    public static String getMODEL_SERVICE_PORT_KEY() {
+        return MODEL_SERVICE_PORT_KEY;
+    }
+
+    public String getModelServiceIp() {
+        return modelServiceIp;
+    }
+
+    public Integer getModelServicePort() {
+        return modelServicePort;
+    }
+
+    public ResourceBundle getBundle() {
+        return bundle;
+    }
 }

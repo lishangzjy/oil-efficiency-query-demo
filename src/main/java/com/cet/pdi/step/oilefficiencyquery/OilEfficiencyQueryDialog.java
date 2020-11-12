@@ -23,6 +23,7 @@
 package com.cet.pdi.step.oilefficiencyquery;
 
 import com.cet.eem.common.definition.ColumnDef;
+import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +39,6 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
-import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
@@ -47,7 +47,7 @@ import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-import javax.annotation.Resource;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -79,8 +79,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     /**
      * 模型查询对象
      */
-    @Resource
-    private ModelQueryDao modelQueryDao;
+    private ModelQueryDao modelQueryDao = new ModelQueryDao();
 
     private Label operateAreaLabel;
     private Text operateAreaText;
@@ -103,7 +102,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * @param transMeta transformation description
      * @param stepName  the step name
      */
-    public OilEfficiencyQueryDialog(Shell parent, Object in, TransMeta transMeta, String stepName) {
+    public OilEfficiencyQueryDialog(Shell parent, Object in, TransMeta transMeta, String stepName) throws IOException {
         super(parent, (BaseStepMeta) in, transMeta, stepName);
         meta = (OilEfficiencyQueryMeta) in;
     }

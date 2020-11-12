@@ -6,13 +6,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.junit.Test;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.KettleVariablesList;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.laf.BasePropertyHandler;
 
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -90,6 +95,18 @@ public class ModelQueryTest {
             }
             System.out.println("-=-=-=-=-=-=-=-=");
         }
+    }
+
+    /**
+     * 测试资源绑定文件
+     * @throws IOException IO读取异常
+     */
+    @Test
+    public void testProperties() throws IOException {
+        String kettlePropertiesFilename = Const.getKettlePropertiesFilename();
+        InputStream is = new FileInputStream(kettlePropertiesFilename);
+        ResourceBundle bundle = new PropertyResourceBundle(is);
+        System.out.println(bundle.getString("model_service_ip"));
     }
 
 }
