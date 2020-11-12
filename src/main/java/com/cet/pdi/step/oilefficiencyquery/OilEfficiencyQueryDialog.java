@@ -23,6 +23,8 @@
 package com.cet.pdi.step.oilefficiencyquery;
 
 import com.cet.eem.common.definition.ColumnDef;
+import com.cet.pdi.step.oilefficiencyquery.enumeration.EnumUtils;
+import com.cet.pdi.step.oilefficiencyquery.enumeration.TypeEnumCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +37,8 @@ import org.eclipse.swt.widgets.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
-import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
 import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
@@ -82,6 +85,9 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     @Resource
     private ModelQueryDao modelQueryDao;
 
+    private DatabaseMeta databaseMeta;
+    private Database database;
+
     private Label operateAreaLabel;
     private Text operateAreaText;
     private Label platformLabel;
@@ -115,6 +121,9 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      */
     @Override
     public String open() {
+        databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
+        database =new Database(loggingObject,databaseMeta);
+
         // store some convenient SWT variables
         Shell parent = getParent();
         Display display = parent.getDisplay();
@@ -210,16 +219,13 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         machineButton.setLayoutData(getFormDataFromPre(platformLabel, machineText, margin));
 
         final int fieldsCols = 3;
-        final int fieldsRows = 2;
+        final int fieldsRows = 1;
         Control lastControl = machineButton;
 
         ColumnInfo[] columnInfos;
         columnInfos = new ColumnInfo[fieldsCols];
         columnInfos[0] = new ColumnInfo("字段", ColumnInfo.COLUMN_TYPE_TEXT, new String[]{""}, false);
-        //columnInfos[1] = new ColumnInfo("类型", ColumnInfo.COLUMN_TYPE_CCOMBO,new String[]{"Number","String","Date","Boolean","Integer","BigNumber","Binary","Timestamp"},false);
         columnInfos[1] = new ColumnInfo("类型", ColumnInfo.COLUMN_TYPE_CCOMBO, ValueMetaFactory.getValueMetaNames(), false);
-        //ValueMetaFactory.getValueMetaNames();
-        columnInfos[2] = new ColumnInfo("选中", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[]{"true", "false"}, false);
 
         changeTableView = new TableView(transMeta, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI, columnInfos, fieldsRows, lsMod, props);
 
@@ -329,48 +335,74 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 在打开插件Dialog前进行数据填充，填充后显示Dialog，一般在shell.open()之前被open()调用。
      */
     private void populateDialog() {
-//        wStepname.selectAll();
-//        String operateArea=meta.getOilManagementModels().get(0).getName();
-//        String platform=meta.getOilManagementModels().get(1).getName();
-//        String machine=meta.getOilManagementModels().get(2).getName();
-//        int row = 0;
-//        if (operateArea != null) {
-//            operateAreaText.setText(operateArea);
-//        }
-//        if (platform != null) {
-//            platformText.setText(platform);
-//        }
-//        if (machine != null) {
-//            machineText.setText(machine);
-//        }
-//        if (meta.getEffFieldMetas() != null) {
-//            for (ValueMetaInterface valueMeta : meta.getEffFieldMetas()) {
-//                if (valueMeta.getName() != null) {
-//                    changeTableView.setText(valueMeta.getName(), 1, row);
-//                }
-//                changeTableView.setText(valueMeta.getTypeDesc(), 2, row);
-//            }
-//        }
+        wStepname.selectAll();
+        if (meta.getFieldConditionMap() != null && meta.getFieldConditionMap().size() != 0)
+            for (Map.Entry<String, Object> entry : meta.getFieldConditionMap().entrySet()) {
+                if ("modelLabel".equals(entry.getKey())) {
+                    StringBuilder str = new StringBuilder();
+                    List<LabelAndIds> idNames = (List<LabelAndIds>) entry.getValue();
+                    for(LabelAndIds idName:idNames){
+                        for (Map.Entry<Long, String> idsEntry : idName.getId2NameMap().entrySet()) {
+                            str.append(idsEntry.getKey().toString()).append("_").append(idsEntry.getValue());
+                            str.append(",");
+                        }
+                        str.deleteCharAt(str.length() - 1);
+                        if ("operatearea".equals(idName.getModelLabel())) {
+                            operateAreaText.setText(str.toString());
+                        }
+                        if ("platform".equals(idName.getModelLabel())) {
+                            platformText.setText(str.toString());
+                        }
+                        if ("mechanicalminingmachine".equals(idName.getModelLabel())) {
+                            machineText.setText(str.toString());
+                        }
+                    }
+
+
+                }
+            }
+
+        Table table=changeTableView.table;
+        if (meta.getEffFieldMetas() != null) {
+            for (ValueMetaInterface field : meta.getEffFieldMetas()) {
+                TableItem item=new TableItem(table,SWT.NONE);
+                if (field.getName() != null) {
+                    item.setText(1,field.getName());
+                }
+                if (field.getTypeDesc()!=null) {
+                    item.setText(2,field.getTypeDesc());
+                }
+            }
+        }
+        changeTableView.removeEmptyRows();
+        changeTableView.setRowNums();
+        changeTableView.optWidth(true);
     }
 
     /**
      * 点击获取变量按钮调用
      */
     private void get() {
-        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
-        Database database = new Database(loggingObject, databaseMeta);
-        try {
-            RowMetaInterface rowMetaInterface = database.getTableFields("operationarea");
-            String[] str = rowMetaInterface.getFieldNames();
-            int r = 0;
-            for (String s : str) {
-                changeTableView.setText(s, 1, r++);
+        changeTableView.removeAll();
+        List<Map<String, Object>> rows = null;
+        String sql="select propertylabel,datatype from property_metadata where modellabel='mechanicalminingmachine' ";
+        try{
+            database.connect();
+            PreparedStatement ps=database.prepareSQL(sql);
+            ResultSet set=ps.executeQuery();
+            rows=getRow(set);
+            Table table=changeTableView.table;
+            for(Map<String, Object> map:rows){
+                TableItem item=new TableItem(table,SWT.NONE);
+                item.setText(1,map.get("propertylabel").toString());
+                item.setText(2, EnumUtils.getBySqlType(map.get("datatype").toString(), TypeEnumCode.class).getKettleType());
             }
-        } catch (Exception e) {
+            changeTableView.removeEmptyRows();
+            changeTableView.setRowNums();
+            changeTableView.optWidth(true);
+        }catch(Exception e){
 
         }
-
-
     }
 
     /**
@@ -536,11 +568,55 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     }
 
     /**
+     *
+     * @param text 文本框内容
+     * @param label 文本框label
+     */
+    private void setFieldConditionMap( List<LabelAndIds> labelAndIds,String text, String label) {
+        String[] array = text.split(",");
+        LabelAndIds labelAndId = new LabelAndIds();
+
+        labelAndId.setModelLabel(label);
+        Map<Long, String> id2Map = new HashMap<>();
+        for (String str : array) {
+            String[] idName = str.split("_", 2);
+            id2Map.put(Long.valueOf(idName[0]), idName[1]);
+        }
+        labelAndId.setId2NameMap(id2Map);
+        labelAndIds.add(labelAndId);
+    }
+
+    /**
      * 点击确定按按钮调用，需要在open中绑定控件的监听器,设置参数
      */
     private void ok() {
         //确认时必须返回步骤名
         stepname = wStepname.getText();
+        Map<String, Object> fieldConditionMap = new HashMap<>();
+        List<LabelAndIds> labelAndIds=new ArrayList<>();
+        if (operateAreaText.getText() != null) {
+            setFieldConditionMap(labelAndIds,operateAreaText.getText(), "operatearea");
+        }
+        if (platformText.getText() != null) {
+            setFieldConditionMap(labelAndIds,platformText.getText(), "platform");
+        }
+        if (machineText.getText() != null) {
+            setFieldConditionMap(labelAndIds,machineText.getText(), "mechanicalminingmachine");
+        }
+        fieldConditionMap.put("modelLabel",(Object)labelAndIds);
+
+        List<ValueMetaInterface> effFieldMetas = new ArrayList<>();
+        ValueMetaInterface valueMeta;
+        int count = changeTableView.nrNonEmpty();
+        for(int i=0;i<count;i++){
+            TableItem item = changeTableView.getNonEmpty(i);
+            valueMeta =new ValueMetaBase();
+            valueMeta.setName(item.getText(1));
+            valueMeta.setType(Integer.parseInt(EnumUtils.getByKettleType(item.getText(2), TypeEnumCode.class).getCode().toString()));
+            effFieldMetas.add(valueMeta);
+        }
+        meta.setEffFieldMetas(effFieldMetas);
+        dispose();
 //        List<OilManagementModel> oilManagementModels = new ArrayList<>();
 //        OilManagementModel oilModel=new OilManagementModel();
 //        String [] oText=operateAreaText.getText().split("_",2);
@@ -572,7 +648,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
 //            efficiencyFields.add(data);
 //        }
 //        meta.setEfficiencyFields(efficiencyFields);
-        dispose();
+
     }
 
     /**

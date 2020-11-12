@@ -116,10 +116,8 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      *          1. modelLabel字段等于 "platform"
      *          2. modelId 在 (1, 2, 3) 范围内
      *      需要在meta对象构建的时候从文件中反序列化出来。
-     *
-     *      当字段（key值）为modelLabel时候，我们取查询条件只取list的最后一个元素
      */
-    private Map<ValueMetaInterface, List<Object>> fieldConditionMap;
+    private Map<String, Object> fieldConditionMap;
 
     /**
      * 存储对象与时段字段，作为能效数据的基础维度，执行查询时候放能效字段前
@@ -229,7 +227,8 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
 //        xml.append(XMLHandler.addTagValue("operateArea",oilManagementModels.get(0).getName()));
 //        xml.append(XMLHandler.addTagValue("platform",oilManagementModels.get(1).getName()));
 //        xml.append(XMLHandler.addTagValue("machine",oilManagementModels.get(2).getName()));
-
+        String fieldConditionMap=new ObjectMapper().writeValueAsString(getFieldConditionMap());
+        xml.append(XMLHandler.addTagValue("fieldConditionMap",fieldConditionMap));
         String fieldStr = new ObjectMapper().writeValueAsString(effFieldMetas);
         xml.append(XMLHandler.addTagValue("fieldstr",fieldStr));
 //        String objectAndTimeFieldMetas=new  ObjectMapper().writeValueAsString(objectAndTimeFieldMetas));
@@ -253,7 +252,12 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
             databaseMeta = DatabaseMeta.findDatabase( databases, con );
             String fieldStr = XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "fields"));
             setEffFieldMetas(new ObjectMapper().readValue(fieldStr,List.class));
-            String oilModels=XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode,"oilModels"));
+
+            String fieldConditionMap = XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode,"fieldConditionMap"));
+//            Map<ValueMetaInterface, Object>
+
+            new ObjectMapper().getTypeFactory().constructMapLikeType(Map.class,String.class,Object.class);
+//            String oilModels=XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode,"oilModels"));
 //            setOilManagementModels(new ObjectMapper().readValue(oilModels,List.class));
 //            setEfficiencyFields(new ObjectMapper().readValue(fieldStr, List.class));
 //            setOperateArea(XMLHandler.getNodeValue(XMLHandler.getSubNode(stepnode, "operateArea")));
