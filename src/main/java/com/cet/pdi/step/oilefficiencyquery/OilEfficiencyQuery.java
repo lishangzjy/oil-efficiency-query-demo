@@ -22,15 +22,30 @@
 
 package com.cet.pdi.step.oilefficiencyquery;
 
+import org.pentaho.di.core.database.Database;
+import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * 业务逻辑实现，负责数据处理，转换和流转。这里面主要由processRow()方法来处理。
+ *
  * @author Jinhua
  */
 public class OilEfficiencyQuery extends BaseStep implements StepInterface {
@@ -39,6 +54,9 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
      * for i18n purposes
      */
     private static final Class<?> PKG = OilEfficiencyQueryMeta.class;
+
+    private Database database;
+    private OilEfficiencyQueryMeta meta;
 
     /**
      * The constructor should simply pass on its arguments to the parent class.
@@ -49,51 +67,55 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
      * @param t                 transformation description
      * @param dis               transformation executing
      */
-    public OilEfficiencyQuery(StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis ) {
-        super( s, stepDataInterface, c, t, dis );
+    public OilEfficiencyQuery(StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis) {
+        super(s, stepDataInterface, c, t, dis);
     }
 
     /**
      * 初始化方法，可以建立数据库链接、获取文件句柄等操作，会被PDI调用。
+     *
      * @param smi 元数据
      * @param sdi 数据
      * @return 初始化结果
      */
     @Override
-    public boolean init(StepMetaInterface smi, StepDataInterface sdi ) {
+    public boolean init(StepMetaInterface smi, StepDataInterface sdi) {
         // Casting to step-specific implementation classes is safe
         OilEfficiencyQueryMeta meta = (OilEfficiencyQueryMeta) smi;
         OilEfficiencyQueryData data = (OilEfficiencyQueryData) sdi;
         if (!super.init(meta, data)) {
             return false;
         }
-
+        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
+        database = new Database(this, databaseMeta);
         return true;
         // Add any step-specific initialization that may be needed here
     }
 
     /**
      * 读取行的业务逻辑，会被PDI调用，当此方法返回false时，完成行读取。
-     * @param smi
-     *          The steps metadata to work with
-     * @param sdi
-     *          The steps temporary working data to work with (database connections, result sets, caches, temporary
-     *          variables, etc.)
+     *
+     * @param smi The steps metadata to work with
+     * @param sdi The steps temporary working data to work with (database connections, result sets, caches, temporary
+     *            variables, etc.)
      * @return 执行结果
      * @throws KettleException kettle异常
      */
     @Override
-    public boolean processRow(StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
+    public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
 
         // safely cast the step settings (meta) and runtime info (data) to specific implementations
         OilEfficiencyQueryMeta meta = (OilEfficiencyQueryMeta) smi;
         OilEfficiencyQueryData data = (OilEfficiencyQueryData) sdi;
 
+        //写文件操作
+        writeFile();
+
         // 从输入流中读取一行,通过分割符进行分割，存入object数组中
         Object[] r = getRow();
 
         // 若读不到下一行，则读写完成，调用setOutputDone(),return false;
-        if ( r == null ) {
+        if (r == null) {
             setOutputDone();
             return false;
         }
@@ -101,7 +123,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
         // the "first" flag is inherited from the base step implementation
         // it is used to guard some processing tasks, like figuring out field indexes
         // in the row structure that only need to be done once
-        if ( first ) {
+        if (first) {
             first = false;
             // 如果是第一行则保存数据行元信息到data类中，后续使用
             data.outputRowMeta = getInputRowMeta().clone();
@@ -121,7 +143,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
 
         // safely add the string "Hello World!" at the end of the output row
         // the row array will be resized if necessary
-        Object[] outputRow = RowDataUtil.resizeArray( r, data.outputRowMeta.size() );
+        Object[] outputRow = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
         outputRow[data.outputFieldIndex] = "Hello World!";
 
 //        // 字符替换的业务逻辑
@@ -140,13 +162,13 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
 //        }
 
         // 将行放进输出行流，正确记录输出
-        putRow( data.outputRowMeta, outputRow );
+        putRow(data.outputRowMeta, outputRow);
         // 错误数据输出使用putError传递数据
 
         // log progress if it is time to to so
-        if ( checkFeedback( getLinesRead() ) ) {
+        if (checkFeedback(getLinesRead())) {
             // Some basic logging
-            logBasic( BaseMessages.getString( PKG, "DemoStep.Linenr", getLinesRead() ) );
+            logBasic(BaseMessages.getString(PKG, "DemoStep.Linenr", getLinesRead()));
         }
 
         // indicate that processRow() should be called again
@@ -155,11 +177,12 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
 
     /**
      * 析构函数，用来释放资源，会被PDI调用
+     *
      * @param smi 元数据
      * @param sdi 数据
      */
     @Override
-    public void dispose(StepMetaInterface smi, StepDataInterface sdi ) {
+    public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
 
         // Casting to step-specific implementation classes is safe
         OilEfficiencyQueryMeta meta = (OilEfficiencyQueryMeta) smi;
@@ -168,6 +191,90 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
         // Add any step-specific initialization that may be needed here
 
         // Call superclass dispose()
-        super.dispose( meta, data );
+        super.dispose(meta, data);
+    }
+
+    /**
+     * 解析返回参数
+     *
+     * @param rs 查询数据库返回的字节集
+     * @return list集合
+     */
+    private List<Map<String, Object>> getRow(ResultSet rs) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row;
+        try {
+            // 通过编译对象执行SQL指令
+            if (rs != null) {
+                // 获取结果集的元数据
+                ResultSetMetaData rsd = rs.getMetaData();
+                // 获取当前表的总列数
+                int columnCount = rsd.getColumnCount();
+                // 遍历结果集
+                while (rs.next()) {
+                    // 创建存储当前行的集合对象
+                    row = new HashMap<>();
+                    // 遍历当前行每一列
+                    for (int i = 0; i < columnCount; i++) {
+                        // 获取列的编号获取列名
+                        String columnName = rsd.getColumnName(i + 1);
+                        // 通过列名获取当前遍历列的值
+                        Object columnValue = rs.getObject(columnName);
+                        // 列名和获取值作为 K 和 V 存入Map集合
+                        row.put(columnName, columnValue);
+                    }
+                    // 把每次遍历列的Map集合存储到List集合中
+                    rows.add(row);
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return rows;
+    }
+
+    /**
+     * 从数据库中查询出指定的字段数据并存入文件中
+     */
+    private void writeFile() {
+        List<ValueMetaInterface> valueMetas = meta.getEffFieldMetas();
+        List<String> str = valueMetas.stream().filter(e -> e.getName() != null && e.getName().trim().length() > 0).map(ValueMetaInterface::getName).collect(Collectors.toList());
+        StringBuilder sql = new StringBuilder();
+        sql.append(" select ");
+        for (String s : str) {
+            sql.append(s);
+            sql.append(",");
+        }
+        sql.deleteCharAt(sql.length() - 1);
+        sql.append(" from mechanicalminingmachine ");
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try {
+            database.connect();
+            PreparedStatement ps = database.prepareSQL(sql.toString());
+            ResultSet set = ps.executeQuery();
+            rows = getRow(set);
+        } catch (Exception e) {
+
+        }
+        try {
+            FileWriter outFile = new FileWriter("F:/sqlfile.txt");
+            BufferedWriter writer = new BufferedWriter(outFile);
+            StringBuilder string;
+            for (Map<String, Object> map : rows) {
+                string = new StringBuilder();
+                for (String key : map.keySet()) {
+                    if (map.get(key) != null)
+                        string.append(map.get(key));
+                    string.append(";");
+                }
+                string.deleteCharAt(string.length() - 1);
+                writer.write(String.valueOf(string));
+                writer.newLine();
+            }
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+
+        }
     }
 }

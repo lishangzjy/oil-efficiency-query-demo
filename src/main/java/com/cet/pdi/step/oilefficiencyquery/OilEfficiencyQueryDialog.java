@@ -25,9 +25,12 @@ package com.cet.pdi.step.oilefficiencyquery;
 import com.cet.eem.common.definition.ColumnDef;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.EnumUtils;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.TypeEnumCode;
+import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.*;
 import org.eclipse.swt.layout.FormAttachment;
@@ -41,7 +44,6 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
-import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
@@ -50,7 +52,7 @@ import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-import javax.annotation.Resource;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -82,8 +84,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     /**
      * 模型查询对象
      */
-    @Resource
-    private ModelQueryDao modelQueryDao;
+    private ModelQueryDao modelQueryDao = new ModelQueryDao();
 
     private DatabaseMeta databaseMeta;
     private Database database;
@@ -109,7 +110,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * @param transMeta transformation description
      * @param stepName  the step name
      */
-    public OilEfficiencyQueryDialog(Shell parent, Object in, TransMeta transMeta, String stepName) {
+    public OilEfficiencyQueryDialog(Shell parent, Object in, TransMeta transMeta, String stepName) throws IOException {
         super(parent, (BaseStepMeta) in, transMeta, stepName);
         meta = (OilEfficiencyQueryMeta) in;
     }
@@ -122,7 +123,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     @Override
     public String open() {
         databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
-        database =new Database(loggingObject,databaseMeta);
+        database = new Database(loggingObject, databaseMeta);
 
         // store some convenient SWT variables
         Shell parent = getParent();
@@ -218,7 +219,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         props.setLook(machineButton);
         machineButton.setLayoutData(getFormDataFromPre(platformLabel, machineText, margin));
 
-        final int fieldsCols = 3;
+        final int fieldsCols = 2;
         final int fieldsRows = 1;
         Control lastControl = machineButton;
 
@@ -334,14 +335,17 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     /**
      * 在打开插件Dialog前进行数据填充，填充后显示Dialog，一般在shell.open()之前被open()调用。
      */
+    @SneakyThrows
     private void populateDialog() {
         wStepname.selectAll();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JavaType javaType = objectMapper.getTypeFactory().constructParametricType(List.class, LabelAndIds.class);
         if (meta.getFieldConditionMap() != null && meta.getFieldConditionMap().size() != 0)
             for (Map.Entry<String, Object> entry : meta.getFieldConditionMap().entrySet()) {
                 if ("modelLabel".equals(entry.getKey())) {
-                    StringBuilder str = new StringBuilder();
-                    List<LabelAndIds> idNames = (List<LabelAndIds>) entry.getValue();
-                    for(LabelAndIds idName:idNames){
+                    List<LabelAndIds> idNames = objectMapper.readValue(objectMapper.writeValueAsString(entry.getValue()), javaType);
+                    for (LabelAndIds idName : idNames) {
+                        StringBuilder str = new StringBuilder();
                         for (Map.Entry<Long, String> idsEntry : idName.getId2NameMap().entrySet()) {
                             str.append(idsEntry.getKey().toString()).append("_").append(idsEntry.getValue());
                             str.append(",");
@@ -361,16 +365,15 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
 
                 }
             }
-
-        Table table=changeTableView.table;
+        Table table = changeTableView.table;
         if (meta.getEffFieldMetas() != null) {
             for (ValueMetaInterface field : meta.getEffFieldMetas()) {
-                TableItem item=new TableItem(table,SWT.NONE);
+                TableItem item = new TableItem(table, SWT.NONE);
                 if (field.getName() != null) {
-                    item.setText(1,field.getName());
+                    item.setText(1, field.getName());
                 }
-                if (field.getTypeDesc()!=null) {
-                    item.setText(2,field.getTypeDesc());
+                if (field.getTypeDesc() != null) {
+                    item.setText(2, field.getTypeDesc());
                 }
             }
         }
@@ -385,22 +388,22 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     private void get() {
         changeTableView.removeAll();
         List<Map<String, Object>> rows = null;
-        String sql="select propertylabel,datatype from property_metadata where modellabel='mechanicalminingmachine' ";
-        try{
+        String sql = "select propertylabel,datatype from property_metadata where modellabel='mechanicalminingmachine' ";
+        try {
             database.connect();
-            PreparedStatement ps=database.prepareSQL(sql);
-            ResultSet set=ps.executeQuery();
-            rows=getRow(set);
-            Table table=changeTableView.table;
-            for(Map<String, Object> map:rows){
-                TableItem item=new TableItem(table,SWT.NONE);
-                item.setText(1,map.get("propertylabel").toString());
+            PreparedStatement ps = database.prepareSQL(sql);
+            ResultSet set = ps.executeQuery();
+            rows = getRow(set);
+            Table table = changeTableView.table;
+            for (Map<String, Object> map : rows) {
+                TableItem item = new TableItem(table, SWT.NONE);
+                item.setText(1, map.get("propertylabel").toString());
                 item.setText(2, EnumUtils.getBySqlType(map.get("datatype").toString(), TypeEnumCode.class).getKettleType());
             }
             changeTableView.removeEmptyRows();
             changeTableView.setRowNums();
             changeTableView.optWidth(true);
-        }catch(Exception e){
+        } catch (Exception e) {
 
         }
     }
@@ -448,47 +451,40 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
      * 获取工作区
      */
     private void getOperate() {
-        String db = "matterhorn";
         String sql = "select * from operationarea  order by id";
         String shellText = "工作区";
         String message = "请选择工作区";
-        getDialog(db, sql, shellText, message);
+        getDialog(sql, shellText, message);
     }
 
     /**
      * 获取平台
      */
     private void getPlatform() {
-        String db = "matterhorn";
         String sql = "select * from platform  order by id";
         String shellText = "平台";
         String message = "请选择平台";
-        getDialog(db, sql, shellText, message);
+        getDialog(sql, shellText, message);
     }
 
     /**
      * 获取机采设备
      */
     private void getMachine() {
-        String db = "matterhorn";
         String sql = "select * from mechanicalminingmachine  order by id";
         String shellText = "设备";
         String message = "请选择设备";
-        getDialog(db, sql, shellText, message);
+        getDialog(sql, shellText, message);
     }
 
     /**
      * 从数据库查询信息并且返回一个选择框
      *
-     * @param databaseName 数据库名
-     * @param sql          sql语句
-     * @param shellText    选择框标题
-     * @param message      选择框提示信息
+     * @param sql       sql语句
+     * @param shellText 选择框标题
+     * @param message   选择框提示信息
      */
-    private void getDialog(String databaseName, String sql, String shellText, String message) {
-        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
-        // DatabaseMeta databaseMeta=transMeta.findDatabase(db);
-        Database database = new Database(loggingObject, databaseMeta);
+    private void getDialog(String sql, String shellText, String message) {
         List<Map<String, Object>> rows = null;
         try {
             database.connect();
@@ -502,7 +498,6 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         List<String> list = rows.stream().map(e -> e.get("id") + "_" + e.get("name")).collect(Collectors.toList());
         String[] string = new String[list.size()];
         list.toArray(string);
-
         EnterSelectionDialog dialog = new EnterSelectionDialog(shell, string, shellText, message);
         String selection = dialog.open();
         if (selection != null) {
@@ -568,14 +563,12 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     }
 
     /**
-     *
-     * @param text 文本框内容
+     * @param text  文本框内容
      * @param label 文本框label
      */
-    private void setFieldConditionMap( List<LabelAndIds> labelAndIds,String text, String label) {
+    private void setFieldConditionMap(List<LabelAndIds> labelAndIds, String text, String label) {
         String[] array = text.split(",");
         LabelAndIds labelAndId = new LabelAndIds();
-
         labelAndId.setModelLabel(label);
         Map<Long, String> id2Map = new HashMap<>();
         for (String str : array) {
@@ -593,62 +586,33 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         //确认时必须返回步骤名
         stepname = wStepname.getText();
         Map<String, Object> fieldConditionMap = new HashMap<>();
-        List<LabelAndIds> labelAndIds=new ArrayList<>();
-        if (operateAreaText.getText() != null) {
-            setFieldConditionMap(labelAndIds,operateAreaText.getText(), "operatearea");
+        List<LabelAndIds> labelAndIds = new ArrayList<>();
+        String operate = operateAreaText.getText();
+        if (operate != null && operate.trim().length() > 0) {
+            setFieldConditionMap(labelAndIds, operate, "operatearea");
         }
-        if (platformText.getText() != null) {
-            setFieldConditionMap(labelAndIds,platformText.getText(), "platform");
+        String platform = platformText.getText();
+        if (platform != null && platform.trim().length() > 0) {
+            setFieldConditionMap(labelAndIds, platform, "platform");
         }
-        if (machineText.getText() != null) {
-            setFieldConditionMap(labelAndIds,machineText.getText(), "mechanicalminingmachine");
+        String machine = machineText.getText();
+        if (machine != null && machine.trim().length() > 0) {
+            setFieldConditionMap(labelAndIds, machine, "mechanicalminingmachine");
         }
-        fieldConditionMap.put("modelLabel",(Object)labelAndIds);
-
+        fieldConditionMap.put("modelLabel", labelAndIds);
+        meta.setFieldConditionMap(fieldConditionMap);
         List<ValueMetaInterface> effFieldMetas = new ArrayList<>();
         ValueMetaInterface valueMeta;
         int count = changeTableView.nrNonEmpty();
-        for(int i=0;i<count;i++){
+        for (int i = 0; i < count; i++) {
             TableItem item = changeTableView.getNonEmpty(i);
-            valueMeta =new ValueMetaBase();
-            valueMeta.setName(item.getText(1));
-            valueMeta.setType(Integer.parseInt(EnumUtils.getByKettleType(item.getText(2), TypeEnumCode.class).getCode().toString()));
+            String name = item.getText(1);
+            int type = Integer.parseInt(EnumUtils.getByKettleType(item.getText(2), TypeEnumCode.class).getCode().toString());
+            valueMeta = new ValueMetaBase(name, type);
             effFieldMetas.add(valueMeta);
         }
         meta.setEffFieldMetas(effFieldMetas);
         dispose();
-//        List<OilManagementModel> oilManagementModels = new ArrayList<>();
-//        OilManagementModel oilModel=new OilManagementModel();
-//        String [] oText=operateAreaText.getText().split("_",2);
-//        oilModel.setName(oText[1]);
-//        oilManagementModels.add(oilModel);
-//        oilModel=new OilManagementModel();
-//        String [] pText=platformText.getText().split("_",2);
-//        oilModel.setName(pText[1]);
-//        oilManagementModels.add(oilModel);
-//        oilModel=new OilManagementModel();
-//        String [] mText = machineText.getText().split("_",2);
-//        oilModel.setName(mText[1]);
-//        meta.setOilManagementModels(oilManagementModels);
-//
-//        int count = changeTableView.nrNonEmpty();
-//        List<ValueMetaInterface> valueMetas=new ArrayList<>();
-//        ValueMetaInterface valueMeta=new ValueMetaBase();
-//        for (int i = 0; i < count; i++) {
-//            TableItem item = changeTableView.getNonEmpty(i);
-//            valueMeta=new ValueMetaBase();
-//            valueMeta.setName(item.getText(1));
-//            boolean bool = Arrays.asList(ValueMetaFactory.getValueMetaNames()).contains(item.getText(2));
-//            if (bool) {
-//                valueMeta.setsType(1);
-//            }
-//            if ("true".equals(item.getText(3)) || "false".equals(item.getText(3))) {
-//                data.setSelected(item.getText(3));
-//            }
-//            efficiencyFields.add(data);
-//        }
-//        meta.setEfficiencyFields(efficiencyFields);
-
     }
 
     /**
