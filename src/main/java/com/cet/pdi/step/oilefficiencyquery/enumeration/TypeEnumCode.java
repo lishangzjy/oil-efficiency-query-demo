@@ -1,6 +1,7 @@
 package com.cet.pdi.step.oilefficiencyquery.enumeration;
 
 import lombok.Getter;
+import org.pentaho.di.core.row.ValueMetaInterface;
 
 /**
  * 类型对应关系枚举对象
@@ -14,13 +15,13 @@ public enum TypeEnumCode implements DataEnumCode {
     /**
      * SQL数据类型名 <-> Kettle类型名
      */
-    TypeString("string", "String", 2),
-    TypeInt4("int4", "Integer", 5),
-    TypeInt8("int8", "Integer", 5),
-    TypeFloat("float", "Number", 1),
-    TypeBoolean("boolean", "Boolean", 4),
-    TypeJsonb("jsonb", "String", 2),
-    TypeOther("Integer", 5);
+    TypeString("string", "String", ValueMetaInterface.TYPE_STRING),
+    TypeInt4("int4", "Integer", ValueMetaInterface.TYPE_INTEGER),
+    TypeInt8("int8", "Integer", ValueMetaInterface.TYPE_INTEGER),
+    TypeFloat("float", "Number", ValueMetaInterface.TYPE_NUMBER),
+    TypeBoolean("boolean", "Boolean", ValueMetaInterface.TYPE_BOOLEAN),
+    TypeJsonb("jsonb", "String", ValueMetaInterface.TYPE_STRING),
+    TypeOther("Integer", ValueMetaInterface.TYPE_INTEGER);
 
     /**
      * 类型对应关系唯一标识码

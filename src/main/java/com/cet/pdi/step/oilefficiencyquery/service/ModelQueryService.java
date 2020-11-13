@@ -59,7 +59,7 @@ public class ModelQueryService {
             Object idOpt = rowMap.get(ColumnDef.ID);
             Object nameOpt = rowMap.get(ColumnDef.NAME);
             if (idOpt != null && nameOpt != null) {
-                idAndNames.add(idOpt + "$_$" + nameOpt);
+                idAndNames.add(idOpt + "_" + nameOpt);
             }
         });
 
