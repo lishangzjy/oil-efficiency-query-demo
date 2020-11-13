@@ -148,11 +148,10 @@ public class ModelQueryService {
             return new ArrayList<>();
         }
         // 构建查询条件
-        QueryCondition qc = buildQueryCondition(effModelLabel, ids, null);
-        FlatQueryConditionDTO rootCondition = qc.getRootCondition();
+        QueryCondition qc = buildQueryCondition(effModelLabel, ids, props);
         if (CollectionUtils.isNotEmpty(ids)) {
             // 需要替换label和id字段查询条件
-            List<ConditionBlock> exps = rootCondition.getFilter().getExpressions();
+            List<ConditionBlock> exps = qc.getRootCondition().getFilter().getExpressions();
             Optional<ConditionBlock> idOpt = exps.stream().filter(exp -> ColumnDef.ID.equals(exp.getProp())).findFirst();
             // 移除原有的id条件
             exps.remove(idOpt.orElse(null));
@@ -171,10 +170,6 @@ public class ModelQueryService {
                 exps.addAll(labelAndIdExps);
             }
         }
-        if (CollectionUtils.isNotEmpty(props)) {
-            rootCondition.setProps(props);
-        }
         return modelQueryDao.getModelData(qc);
     }
-
 }
