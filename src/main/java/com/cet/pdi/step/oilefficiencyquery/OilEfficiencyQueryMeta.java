@@ -25,7 +25,9 @@ package com.cet.pdi.step.oilefficiencyquery;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lowagie.text.pdf.codec.wmf.InputMeta;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
@@ -81,6 +83,7 @@ import java.util.*;
 )
 @InjectionSupported(localizationPrefix = "OilEfficiencyQueryMeta.Injection.")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInterface {
 
     /**
@@ -154,7 +157,8 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
         objectAndTimeFieldMetas.add(new ValueMetaInteger("aggregationCycle"));
         objectAndTimeFieldMetas.add(new ValueMetaInteger("logTime"));
 
-        // 初始化父类的步骤元
+        final String propertiesFile = "kettle.properties";
+        // 初始化父类的步骤元信息
         parentStepMeta = getParentStepMeta();
         // 设置资源绑定对象 kettle.properties
         InputStream stream = new FileInputStream(Const.getKettleDirectory() + Const.FILE_SEPARATOR + propertiesFile);
@@ -335,13 +339,14 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      * @param repository   the repository instance optionally read from
      * @param metaStore    the metaStore to optionally read from
      */
+    @Override
     public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
-                                    VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
-
+                          VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
         /*
          * This implementation appends the outputField to the row-stream
          */
-
+        this.objectAndTimeFieldMetas.forEach(inputRowMeta::addValueMeta);
+        this.effFieldMetas.forEach(inputRowMeta::addValueMeta);
 //        // a value meta object contains the meta data for a field
 //        ValueMetaInterface v = new ValueMetaString( outputField );
 //
@@ -383,12 +388,11 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
         if (input != null && input.length > 0) {
             cr = new CheckResult(CheckResult.TYPE_RESULT_OK,
                     BaseMessages.getString(PKG, "Demo.CheckResult.ReceivingRows.OK"), stepMeta);
-            remarks.add(cr);
         } else {
             cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR,
                     BaseMessages.getString(PKG, "Demo.CheckResult.ReceivingRows.ERROR"), stepMeta);
-            remarks.add(cr);
         }
+        remarks.add(cr);
     }
 
     /**

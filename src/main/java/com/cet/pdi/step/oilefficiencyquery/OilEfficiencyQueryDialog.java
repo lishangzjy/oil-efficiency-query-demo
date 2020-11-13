@@ -26,6 +26,7 @@ import com.cet.eem.common.definition.ColumnDef;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.EnumUtils;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.TypeEnumCode;
 import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
+import com.cet.pdi.step.oilefficiencyquery.service.ModelQueryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -82,9 +83,9 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     private OilEfficiencyQueryMeta meta;
 
     /**
-     * 模型查询对象
+     * 模型查询功能
      */
-    private ModelQueryDao modelQueryDao = new ModelQueryDao();
+    private ModelQueryService modelQueryService = new ModelQueryService();
 
     private DatabaseMeta databaseMeta;
     private Database database;
@@ -340,7 +341,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         wStepname.selectAll();
         ObjectMapper objectMapper = new ObjectMapper();
         JavaType javaType = objectMapper.getTypeFactory().constructParametricType(List.class, LabelAndIds.class);
-        if (meta.getFieldConditionMap() != null && meta.getFieldConditionMap().size() != 0)
+        if (meta.getFieldConditionMap() != null && meta.getFieldConditionMap().size() != 0) {
             for (Map.Entry<String, Object> entry : meta.getFieldConditionMap().entrySet()) {
                 if ("modelLabel".equals(entry.getKey())) {
                     List<LabelAndIds> idNames = objectMapper.readValue(objectMapper.writeValueAsString(entry.getValue()), javaType);
@@ -365,6 +366,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
 
                 }
             }
+        }
         Table table = changeTableView.table;
         if (meta.getEffFieldMetas() != null) {
             for (ValueMetaInterface field : meta.getEffFieldMetas()) {
@@ -502,51 +504,6 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         String selection = dialog.open();
         if (selection != null) {
             machineText.setText(selection);
-        }
-    }
-
-    /**
-     * 获取具体的层级对象
-     *
-     * @param ids 层级对象ID列表
-     * @return 层级对象格式为【id_name】的数组
-     */
-    private List<String> getLevelObject(String modelLabel, List<Long> ids) {
-
-        List<Map<String, Object>> modelData = modelQueryDao.getModelData(modelLabel, ids, null);
-        List<String> idAndNames = new ArrayList<>();
-        modelData.forEach(rowMap -> {
-            Object idOpt = rowMap.get(ColumnDef.ID);
-            Object nameOpt = rowMap.get(ColumnDef.NAME);
-            if (idOpt != null && nameOpt != null) {
-                idAndNames.add(idOpt + "_" + nameOpt);
-            }
-        });
-
-        return idAndNames;
-    }
-
-    /**
-     * 查询模型的属性
-     * 如果为空或解析异常，返回一个null
-     *
-     * @param modelLabel 模型label
-     * @return 元数据属性列集合
-     */
-    private List<Map<String, Object>> getModelProperties(String modelLabel) {
-        Map<String, Object> modelMeta = modelQueryDao.getModelMeta(modelLabel);
-        if (modelMeta == null) {
-            return new ArrayList<>();
-        }
-        final String propertyKey = "propertyList";
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<Map<String, Object>> properties;
-        try {
-            properties = objectMapper.readValue((String) modelMeta.get(propertyKey), new TypeReference<List<Map<String, Object>>>() {
-            });
-            return properties;
-        } catch (JsonProcessingException jex) {
-            return null;
         }
     }
 
