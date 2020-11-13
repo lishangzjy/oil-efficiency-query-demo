@@ -104,6 +104,11 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     private DatabaseMeta databaseMeta;
 
     /**
+     * kettle用户配置属性文件名
+     */
+    private static final String propertiesFile =  "kettle.properties";
+
+    /**
      * 父类的步骤元信息
      */
     private StepMeta parentStepMeta;
@@ -152,7 +157,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
         // 初始化父类的步骤元
         parentStepMeta = getParentStepMeta();
         // 设置资源绑定对象 kettle.properties
-        InputStream stream = new FileInputStream(Const.getKettlePropertiesFilename());
+        InputStream stream = new FileInputStream(Const.getKettleDirectory() + Const.FILE_SEPARATOR + propertiesFile);
         bundle = new PropertyResourceBundle(stream);
     }
 
@@ -330,7 +335,7 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
      * @param repository   the repository instance optionally read from
      * @param metaStore    the metaStore to optionally read from
      */
-    public void getEfficiencyFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
+    public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
                                     VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
 
         /*

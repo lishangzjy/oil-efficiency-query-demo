@@ -48,6 +48,11 @@ public class ModelQueryDao {
     private static final String MODEL_SERVICE_PORT_KEY = "model_service_port";
 
     /**
+     * kettle用户配置属性文件名
+     */
+    private static final String propertiesFile =  "kettle.properties";
+
+    /**
      * 存配置中模型服务IP的值
      */
     private final String modelServiceIp;
@@ -69,7 +74,7 @@ public class ModelQueryDao {
         // 1. 初始化rest接口请求工具
         restTemplate = new RestTemplate();
         // 2. 初始化资源绑定文件对象
-        InputStream stream = new FileInputStream(Const.getKettlePropertiesFilename());
+        InputStream stream = new FileInputStream(Const.getKettleDirectory() + Const.FILE_SEPARATOR + propertiesFile);
         this.bundle = new PropertyResourceBundle(stream);
         // 3. 设置ip和port
         this.modelServiceIp = bundle.getString(ModelQueryDao.getMODEL_SERVICE_IP_KEY());
