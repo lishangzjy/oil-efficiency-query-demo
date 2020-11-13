@@ -2,6 +2,7 @@ package com.cet.pdi.step.oilefficiencyqeury;
 
 import com.cet.pdi.step.oilefficiencyquery.LabelAndIds;
 import com.cet.pdi.step.oilefficiencyquery.dao.ModelQueryDao;
+import com.cet.pdi.step.oilefficiencyquery.service.ModelQueryService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
@@ -11,13 +12,11 @@ import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.KettleVariablesList;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaString;
-import org.pentaho.di.laf.BasePropertyHandler;
 
-import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -30,6 +29,12 @@ import java.util.*;
 public class ModelQueryTest {
 
     private final ModelQueryDao modelQueryDao = new ModelQueryDao("172.16.6.28", 8085);
+
+    private final ModelQueryService modelQueryService = new ModelQueryService();
+
+    public ModelQueryTest() throws IOException {
+
+    }
 
     //@BeforeClass
     public static void setUpBeforeClass() throws KettleException {
@@ -108,6 +113,12 @@ public class ModelQueryTest {
         InputStream is = new FileInputStream(kettlePropertiesFilename);
         ResourceBundle bundle = new PropertyResourceBundle(is);
         System.out.println(bundle.getString("model_service_ip"));
+    }
+
+    @Test
+    public void testModelQueryService() {
+        List<String> buildings = modelQueryService.getLevelObject("building", null);
+        buildings.forEach(System.out::println);
     }
 
 }

@@ -29,7 +29,7 @@ import java.util.*;
  * @version 1.0
  * @date 2020/11/5 18:49
  */
-@Repository
+@Repository(value = "modelQueryDao")
 public class ModelQueryDao {
 
     /**
@@ -46,6 +46,11 @@ public class ModelQueryDao {
      * 模型服务port的键
      */
     private static final String MODEL_SERVICE_PORT_KEY = "model_service_port";
+
+    /**
+     * kettle用户配置属性文件名
+     */
+    private static final String PROPERTIES_FILE =  "kettle.properties";
 
     /**
      * 存配置中模型服务IP的值
@@ -69,11 +74,11 @@ public class ModelQueryDao {
         // 1. 初始化rest接口请求工具
         restTemplate = new RestTemplate();
         // 2. 初始化资源绑定文件对象
-        InputStream stream = new FileInputStream(Const.getKettlePropertiesFilename());
+        InputStream stream = new FileInputStream(Const.getKettleDirectory() + Const.FILE_SEPARATOR + PROPERTIES_FILE);
         this.bundle = new PropertyResourceBundle(stream);
         // 3. 设置ip和port
         this.modelServiceIp = bundle.getString(ModelQueryDao.getMODEL_SERVICE_IP_KEY());
-        this.modelServicePort = Integer.parseInt(ModelQueryDao.getMODEL_SERVICE_PORT_KEY());
+        this.modelServicePort = Integer.parseInt(bundle.getString(ModelQueryDao.getMODEL_SERVICE_PORT_KEY()));
     }
 
     /**
@@ -179,7 +184,8 @@ public class ModelQueryDao {
         }
 
         ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue((String) result.getData(), new TypeReference<List<Map<String, Object>>>() {
+        return objectMapper.readValue(objectMapper.writeValueAsString(result.getData()),
+                new TypeReference<List<Map<String, Object>>>() {
         });
     }
 

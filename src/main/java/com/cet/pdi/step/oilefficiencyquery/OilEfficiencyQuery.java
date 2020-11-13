@@ -22,6 +22,7 @@
 
 package com.cet.pdi.step.oilefficiencyquery;
 
+import com.cet.pdi.step.oilefficiencyquery.service.ModelQueryService;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -34,6 +35,7 @@ import org.pentaho.di.trans.step.*;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -56,7 +58,16 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
     private static final Class<?> PKG = OilEfficiencyQueryMeta.class;
 
     private Database database;
+
+    /**
+     * 步骤元数据
+     */
     private OilEfficiencyQueryMeta meta;
+
+    /**
+     * 模型服务查询功能
+     */
+    private ModelQueryService modelQueryService;
 
     /**
      * The constructor should simply pass on its arguments to the parent class.
@@ -69,6 +80,11 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
      */
     public OilEfficiencyQuery(StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis) {
         super(s, stepDataInterface, c, t, dis);
+        try {
+            this.modelQueryService = new ModelQueryService();
+        } catch (IOException ignored) {
+
+        }
     }
 
     /**
@@ -263,8 +279,9 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
             for (Map<String, Object> map : rows) {
                 string = new StringBuilder();
                 for (String key : map.keySet()) {
-                    if (map.get(key) != null)
+                    if (map.get(key) != null) {
                         string.append(map.get(key));
+                    }
                     string.append(";");
                 }
                 string.deleteCharAt(string.length() - 1);
