@@ -1,15 +1,13 @@
 package com.cet.pdi.step.oilefficiencyquery.dao;
 
-import com.cet.eem.common.definition.ColumnDef;
-import com.cet.eem.common.model.*;
+import com.cet.eem.common.model.QueryCondition;
+import com.cet.eem.common.model.Result;
 import com.cet.pdi.step.oilefficiencyquery.constant.ModelQueryMethodEnum;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.pentaho.di.core.Const;
-import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,7 +27,6 @@ import java.util.*;
  * @version 1.0
  * @date 2020/11/5 18:49
  */
-@Repository(value = "modelQueryDao")
 public class ModelQueryDao {
 
     /**
@@ -50,8 +47,8 @@ public class ModelQueryDao {
     /**
      * kettle用户配置属性文件名
      */
+    private static final String PROPERTIES_FILE = "kettle.properties";
 
-    private static final String PROPERTIES_FILE =  "kettle.properties";
     /**
      * 存配置中模型服务IP的值
      */
@@ -77,8 +74,8 @@ public class ModelQueryDao {
         InputStream stream = new FileInputStream(Const.getKettleDirectory() + Const.FILE_SEPARATOR + PROPERTIES_FILE);
         this.bundle = new PropertyResourceBundle(stream);
         // 3. 设置ip和port
-        this.modelServiceIp = bundle.getString(ModelQueryDao.getMODEL_SERVICE_IP_KEY());
-        this.modelServicePort = Integer.parseInt(bundle.getString(ModelQueryDao.getMODEL_SERVICE_PORT_KEY()));
+        this.modelServiceIp = bundle.getString(MODEL_SERVICE_IP_KEY);
+        this.modelServicePort = Integer.parseInt(bundle.getString(MODEL_SERVICE_PORT_KEY));
     }
 
     /**
@@ -126,58 +123,23 @@ public class ModelQueryDao {
     }
 
     /**
-     * 构建模型数据查询条件
-     *
-     * @param modelLabel 模型label
-     * @param ids        模型ID列表
-     * @param props      需要查询的属性
-     * @return 构建完成请求体对象
-     */
-    private QueryCondition buildQueryCondition(String modelLabel, List<Long> ids, List<String> props) {
-        QueryCondition qc = new QueryCondition();
-        FlatQueryConditionDTO rootCondition = null;
-        if (StringUtils.isEmpty(modelLabel)) {
-            return null;
-        }
-        qc.setRootLabel(modelLabel);
-        if (CollectionUtils.isNotEmpty(ids)) {
-            if (ids.size() == 1) {
-                qc.setRootID(ids.get(0));
-            } else {
-                rootCondition = new FlatQueryConditionDTO();
-                rootCondition.setFilter(new ConditionBlockCompose(new ArrayList<>(
-                        Collections.singletonList(new ConditionBlock(ColumnDef.ID, ConditionBlock.OPERATOR_IN, ids))))
-                );
-            }
-        }
-        if (CollectionUtils.isNotEmpty(props)) {
-            if (rootCondition == null) {
-                rootCondition = new FlatQueryConditionDTO();
-            }
-            rootCondition.setProps(props);
-        }
-        qc.setRootCondition(rootCondition);
-        return qc;
-    }
-
-    /**
      * 查询模型数据
      * 1. 构建URI
      * 2. 构建查询条件
      * 3. 发POST请求
      * 4. 解析结果
      *
-     * @param modelLabel 模型label
-     * @param ids        模型id列表
-     * @param props      要展示的属性列
+     * @param qc 查询条件
      * @return 返回模型数据集合
      */
     @SneakyThrows
     @SuppressWarnings("rawtypes")
-    public List<Map<String, Object>> getModelData(String modelLabel, List<Long> ids, List<String> props) {
+    public List<Map<String, Object>> getModelData(QueryCondition qc) {
+        if (StringUtils.isEmpty(qc.getRootLabel())) {
+            return new ArrayList<>();
+        }
 
-        URI uri = buildQueryUri(modelLabel, ModelQueryMethodEnum.MODEL_DATA);
-        QueryCondition qc = buildQueryCondition(modelLabel, ids, props);
+        URI uri = buildQueryUri(qc.getRootLabel(), ModelQueryMethodEnum.MODEL_DATA);
         Result result = restTemplate.postForObject(uri, qc, Result.class);
         if (result == null || result.getCode() != 0) {
             return new ArrayList<>();
@@ -210,25 +172,5 @@ public class ModelQueryDao {
         String dataStr = objectMapper.writeValueAsString(result.getData());
         return objectMapper.readValue(dataStr, new TypeReference<Map<String, Object>>() {
         });
-    }
-
-    public static String getMODEL_SERVICE_IP_KEY() {
-        return MODEL_SERVICE_IP_KEY;
-    }
-
-    public static String getMODEL_SERVICE_PORT_KEY() {
-        return MODEL_SERVICE_PORT_KEY;
-    }
-
-    public String getModelServiceIp() {
-        return modelServiceIp;
-    }
-
-    public Integer getModelServicePort() {
-        return modelServicePort;
-    }
-
-    public ResourceBundle getBundle() {
-        return bundle;
     }
 }
