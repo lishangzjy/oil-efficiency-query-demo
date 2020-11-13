@@ -59,7 +59,7 @@ public class ModelQueryService {
             Object idOpt = rowMap.get(ColumnDef.ID);
             Object nameOpt = rowMap.get(ColumnDef.NAME);
             if (idOpt != null && nameOpt != null) {
-                idAndNames.add(idOpt + "$_$" + nameOpt);
+                idAndNames.add(idOpt + "_" + nameOpt);
             }
         });
 
@@ -82,14 +82,14 @@ public class ModelQueryService {
         }
         qc.setRootLabel(modelLabel);
         if (CollectionUtils.isNotEmpty(ids)) {
+            rootCondition = new FlatQueryConditionDTO();
+            ConditionBlock idExpr;
             if (ids.size() == 1) {
-                qc.setRootID(ids.get(0));
+                idExpr = new ConditionBlock(ColumnDef.ID, ConditionBlock.OPERATOR_EQ, ids.get(0));
             } else {
-                rootCondition = new FlatQueryConditionDTO();
-                rootCondition.setFilter(new ConditionBlockCompose(new ArrayList<>(
-                        Collections.singletonList(new ConditionBlock(ColumnDef.ID, ConditionBlock.OPERATOR_IN, ids))))
-                );
+                idExpr = new ConditionBlock(ColumnDef.ID, ConditionBlock.OPERATOR_IN, ids);
             }
+            rootCondition.setFilter(new ConditionBlockCompose(new ArrayList<>(Collections.singletonList(idExpr))));
         }
         if (CollectionUtils.isNotEmpty(props)) {
             if (rootCondition == null) {
@@ -135,7 +135,7 @@ public class ModelQueryService {
      * @param ids        油气田模型id范围
      * @return 油气田的能效模型数据列表
      */
-    public List<Map<String, Object>> getModelOilEfficiency(String modelLabel, List<Long> ids) {
+    public List<Map<String, Object>> getModelOilEfficiency(String modelLabel, List<Long> ids, List<String> props) {
 
         final String objectLabelKey = "objectLabel".toLowerCase();
         final String objectIdKey = "objectId".toLowerCase();
@@ -149,9 +149,10 @@ public class ModelQueryService {
         }
         // 构建查询条件
         QueryCondition qc = buildQueryCondition(effModelLabel, ids, null);
+        FlatQueryConditionDTO rootCondition = qc.getRootCondition();
         if (CollectionUtils.isNotEmpty(ids)) {
             // 需要替换label和id字段查询条件
-            List<ConditionBlock> exps = qc.getRootCondition().getFilter().getExpressions();
+            List<ConditionBlock> exps = rootCondition.getFilter().getExpressions();
             Optional<ConditionBlock> idOpt = exps.stream().filter(exp -> ColumnDef.ID.equals(exp.getProp())).findFirst();
             // 移除原有的id条件
             exps.remove(idOpt.orElse(null));
@@ -169,6 +170,9 @@ public class ModelQueryService {
                 labelAndIdExps.add(idCondition);
                 exps.addAll(labelAndIdExps);
             }
+        }
+        if (CollectionUtils.isNotEmpty(props)) {
+            rootCondition.setProps(props);
         }
         return modelQueryDao.getModelData(qc);
     }
