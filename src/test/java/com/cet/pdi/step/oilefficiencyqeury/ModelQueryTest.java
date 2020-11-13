@@ -119,6 +119,24 @@ public class ModelQueryTest {
     public void testModelQueryService() {
         List<String> buildings = modelQueryService.getLevelObject("building", null);
         buildings.forEach(System.out::println);
+        System.out.println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+        List<Map<String, Object>> properties = modelQueryService.getModelProperties("platformkpi");
+        for (Map<String, Object> property : properties) {
+            for (Map.Entry<String, Object> entry : property.entrySet()) {
+                System.out.println(entry.getKey() + "  ---------  " + entry.getValue());
+            }
+            System.out.println("===========================");
+        }
+    }
+
+    @Test
+    public void testList() {
+        List<String> strList = new ArrayList<>();
+        strList.add("Hello");
+        strList.add("Hi");
+        strList.remove(null);
+        strList.forEach(System.out::println);
+
     }
 
 }
