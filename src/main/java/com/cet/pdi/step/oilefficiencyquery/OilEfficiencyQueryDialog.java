@@ -22,6 +22,7 @@
 
 package com.cet.pdi.step.oilefficiencyquery;
 
+import com.cet.eem.common.constant.TableName;
 import com.cet.eem.common.definition.ColumnDef;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.EnumUtils;
 import com.cet.pdi.step.oilefficiencyquery.enumeration.TypeEnumCode;
@@ -85,7 +86,7 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
     /**
      * 模型查询功能
      */
-    private ModelQueryService modelQueryService = new ModelQueryService();
+    private final ModelQueryService modelQueryService = new ModelQueryService();
 
     private DatabaseMeta databaseMeta;
     private Database database;
@@ -546,17 +547,17 @@ public class OilEfficiencyQueryDialog extends BaseStepDialog implements StepDial
         List<LabelAndIds> labelAndIds = new ArrayList<>();
         String operate = operateAreaText.getText();
         if (operate != null && operate.trim().length() > 0) {
-            setFieldConditionMap(labelAndIds, operate, "operatearea");
+            setFieldConditionMap(labelAndIds, operate, TableName.OPERATION_AREA);
         }
         String platform = platformText.getText();
         if (platform != null && platform.trim().length() > 0) {
-            setFieldConditionMap(labelAndIds, platform, "platform");
+            setFieldConditionMap(labelAndIds, platform, TableName.PLATFORM);
         }
         String machine = machineText.getText();
         if (machine != null && machine.trim().length() > 0) {
-            setFieldConditionMap(labelAndIds, machine, "mechanicalminingmachine");
+            setFieldConditionMap(labelAndIds, machine, TableName.MECHANICAL_MINING_MACHINE);
         }
-        fieldConditionMap.put("modelLabel", labelAndIds);
+        fieldConditionMap.put(ColumnDef.MODEL_LABEL, labelAndIds);
         meta.setFieldConditionMap(fieldConditionMap);
         List<ValueMetaInterface> effFieldMetas = new ArrayList<>();
         ValueMetaInterface valueMeta;

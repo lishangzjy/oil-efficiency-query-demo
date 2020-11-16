@@ -32,6 +32,13 @@ public class LabelAndIds {
      */
     private Map<Long, String> id2NameMap;
 
+    public LabelAndIds() {
+    }
+
+    public LabelAndIds(String modelLabel) {
+        this.modelLabel = modelLabel;
+    }
+
     @SneakyThrows
     @Override
     public String toString() {

@@ -22,11 +22,16 @@
 
 package com.cet.pdi.step.oilefficiencyquery;
 
+import com.cet.eem.common.constant.TableName;
+import com.cet.eem.common.definition.ColumnDef;
 import com.cet.pdi.step.oilefficiencyquery.service.ModelQueryService;
+import lombok.SneakyThrows;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
@@ -39,10 +44,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -102,10 +104,57 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
         if (!super.init(meta, data)) {
             return false;
         }
-        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI", "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
+        DatabaseMeta databaseMeta = new DatabaseMeta("matterhorn", "PostgreSQL", "JNDI",
+                "172.17.6.121", "matterhorn", "5432", "postgres", "y6fqdy");
         database = new Database(this, databaseMeta);
+
+        RowMetaInterface inputRowMeta = getInputRowMeta();
+        // 加入基本字段元数据
+        List<ValueMetaInterface> objAndTimeMetas = ((OilEfficiencyQueryMeta) smi).getObjectAndTimeFieldMetas();
+        objAndTimeMetas.forEach(inputRowMeta::addValueMeta);
+        // 能效字段元数据
+        List<ValueMetaInterface> effFieldMetas = ((OilEfficiencyQueryMeta) smi).getEffFieldMetas();
+        effFieldMetas.forEach(inputRowMeta::addValueMeta);
+
+        // 获取字段条件
+        Map<String, Object> fieldConditionMap = ((OilEfficiencyQueryMeta) smi).getFieldConditionMap();
+        // 解析，加入到输入行中
+        resolveEffData(fieldConditionMap);
         return true;
-        // Add any step-specific initialization that may be needed here
+    }
+
+    /**
+     * 根据meta中缓存的字段条件查询出能效时序数据
+     * 并且逐行设置进入输入行
+     *
+     * @param fieldConditionMap 字段查询条件
+     */
+    @SneakyThrows
+    private void resolveEffData(Map<String, Object> fieldConditionMap) {
+        // 有序的字段名数组
+        String[] fieldNames = getInputRowMeta().getFieldNames();
+        // Label条件
+        @SuppressWarnings("unchecked")
+        List<LabelAndIds> labelAndIds = (List<LabelAndIds>) fieldConditionMap.getOrDefault(ColumnDef.MODEL_LABEL,
+                Collections.singleton(new LabelAndIds(TableName.MECHANICAL_MINING_MACHINE))
+        );
+        // 对象条件放索引为0的位置
+        LabelAndIds targetModel = labelAndIds.get(0);
+        // 查询模型数据
+        List<Map<String, Object>> efficiencyData = modelQueryService.getModelOilEfficiency(targetModel.getModelLabel(),
+                new ArrayList<>(targetModel.getId2NameMap().keySet()), Arrays.asList(fieldNames));
+        // 匹配字段，将所有的字段加入到inputRows数组中
+        Object[] inputRow = null;
+        // 每个记录行
+        for (Map<String, Object> efficiencyDatum : efficiencyData) {
+            inputRow = new Object[fieldNames.length];
+            // 每个字段
+            for (int i = 0; i < fieldNames.length; i++) {
+                inputRow[i] = efficiencyDatum.get(fieldNames[i]);
+                // 放入输入行
+                putRow(getInputRowMeta(), inputRow);
+            }
+        }
     }
 
     /**
@@ -125,7 +174,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
         OilEfficiencyQueryData data = (OilEfficiencyQueryData) sdi;
 
         //写文件操作
-        writeFile();
+        //writeFile();
 
         // 从输入流中读取一行,通过分割符进行分割，存入object数组中
         Object[] r = getRow();
@@ -135,56 +184,25 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
             setOutputDone();
             return false;
         }
-
-        // the "first" flag is inherited from the base step implementation
-        // it is used to guard some processing tasks, like figuring out field indexes
-        // in the row structure that only need to be done once
         if (first) {
             first = false;
             // 如果是第一行则保存数据行元信息到data类中，后续使用
             data.outputRowMeta = getInputRowMeta().clone();
-//            // use meta.getFields() to change it, so it reflects the output row structure
-//            meta.getFields( data.outputRowMeta, getStepname(), null, null, this, null, null );
-//
-//            // Locate the row index for this step's field
-//            // If less than 0, the field was not found.
-//            data.outputFieldIndex = data.outputRowMeta.indexOfValue( meta.getOutputField() );
-//            if ( data.outputFieldIndex < 0 ) {
-//                log.logError( BaseMessages.getString( PKG, "DemoStep.Error.NoOutputField" ) );
-//                setErrors( 1L );
-//                setOutputDone();
-//                return false;
-//            }
         }
 
         // safely add the string "Hello World!" at the end of the output row
         // the row array will be resized if necessary
-        Object[] outputRow = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
-        outputRow[data.outputFieldIndex] = "Hello World!";
-
-//        // 字符替换的业务逻辑
-//        for (int i = 0; i < r.length && r[i] != null; i++) {
-//            String str = data.outputRowMeta.getString(r, i);
-//            if (changeColList.contains((i + 1) + "")) {
-//                Iterator iter = changeStr.entrySet().iterator();
-//                while (iter.hasNext()) {
-//                    Map.Entry entry = (Map.Entry) iter.next();
-//                    Object before = entry.getKey();
-//                    Object after = entry.getValue();
-//                    str = str.replace(String.valueOf(before), String.valueOf(after));
-//                }
-//                r[i] = str.getBytes();
-//            }
-//        }
+        //Object[] outputRow = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
+        //outputRow[data.outputFieldIndex] = "Hello World!";
 
         // 将行放进输出行流，正确记录输出
-        putRow(data.outputRowMeta, outputRow);
+        putRow(data.outputRowMeta, r);
         // 错误数据输出使用putError传递数据
 
         // log progress if it is time to to so
         if (checkFeedback(getLinesRead())) {
             // Some basic logging
-            logBasic(BaseMessages.getString(PKG, "DemoStep.Linenr", getLinesRead()));
+            logBasic(BaseMessages.getString(PKG, "OilEfficiencyQuery", getLinesRead()));
         }
 
         // indicate that processRow() should be called again
@@ -218,6 +236,8 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
      */
     private List<Map<String, Object>> getRow(ResultSet rs) {
         List<Map<String, Object>> rows = new ArrayList<>();
+        final int mapInitSize = 16;
+
         Map<String, Object> row;
         try {
             // 通过编译对象执行SQL指令
@@ -229,7 +249,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
                 // 遍历结果集
                 while (rs.next()) {
                     // 创建存储当前行的集合对象
-                    row = new HashMap<>();
+                    row = new HashMap<>(mapInitSize);
                     // 遍历当前行每一列
                     for (int i = 0; i < columnCount; i++) {
                         // 获取列的编号获取列名
@@ -243,7 +263,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
                     rows.add(row);
                 }
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
         return rows;
@@ -269,11 +289,11 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
             PreparedStatement ps = database.prepareSQL(sql.toString());
             ResultSet set = ps.executeQuery();
             rows = getRow(set);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
         try {
-            FileWriter outFile = new FileWriter("F:/sqlfile.txt");
+            FileWriter outFile = new FileWriter("F:/sqlFile.txt");
             BufferedWriter writer = new BufferedWriter(outFile);
             StringBuilder string;
             for (Map<String, Object> map : rows) {
@@ -290,7 +310,7 @@ public class OilEfficiencyQuery extends BaseStep implements StepInterface {
             }
             writer.flush();
             writer.close();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
     }

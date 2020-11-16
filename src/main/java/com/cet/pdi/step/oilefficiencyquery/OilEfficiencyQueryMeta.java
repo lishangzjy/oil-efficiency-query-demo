@@ -107,11 +107,6 @@ public class OilEfficiencyQueryMeta extends BaseStepMeta implements StepMetaInte
     private DatabaseMeta databaseMeta;
 
     /**
-     * kettle用户配置属性文件名
-     */
-    private static final String propertiesFile =  "kettle.properties";
-
-    /**
      * 父类的步骤元信息
      */
     private StepMeta parentStepMeta;
